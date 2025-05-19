@@ -1,0 +1,15 @@
+*.lock
+package.xml
+/vendor
+.idea
+.php_cs.cache
+docs/_build
+composer.lock
+.coverage
+/.phpunit.result.cache
+/var
+/coverage
+.DS_Store
+/results
+/.php-cs-fixer.cache
+/.phpunit.cache
