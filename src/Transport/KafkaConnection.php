@@ -131,7 +131,6 @@ class KafkaConnection
         array    $headers = [],
         bool     $forceFlush = true,
         string   $identifier = null,
-        callable $beforeProduceConvertBody = null,
     ): void {
         $producer = $this->getProducer();
         $topicFromRouting = $this->generalSetting->producer->routing[$identifier] ?? null;
@@ -139,10 +138,6 @@ class KafkaConnection
         foreach ($this->generalSetting->producer->topics as $topic) {
             if ($topicFromRouting && $topic != $topicFromRouting) {
                 continue;
-            }
-
-            if ($beforeProduceConvertBody) {
-                $body = $beforeProduceConvertBody($topic);
             }
 
             $topic = $producer->newTopic($topic);

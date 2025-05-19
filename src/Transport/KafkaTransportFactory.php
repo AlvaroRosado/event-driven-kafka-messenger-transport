@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ARO\KafkaMessenger\Transport;
 
-use ARO\KafkaMessenger\SchemaRegistry\SchemaRegistryManager;
 use ARO\KafkaMessenger\Transport\Metadata\KafkaMetadataHookInterface;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use Symfony\Component\Messenger\Transport\TransportFactoryInterface;
@@ -15,18 +14,15 @@ final readonly class KafkaTransportFactory implements TransportFactoryInterface
 {
     private KafkaTransportSettingResolver $configuration;
     private ?array $globalConfig;
-    private SchemaRegistryManager $schemaRegistryManager;
     private ?KafkaMetadataHookInterface $metadata;
 
     public function __construct(
         KafkaTransportSettingResolver $configuration,
-        SchemaRegistryManager         $schemaRegistryManager,
         ?KafkaMetadataHookInterface   $metadata = null,
         ?array                        $globalConfig = null,
     ) {
         $this->configuration = $configuration;
         $this->globalConfig = $globalConfig;
-        $this->schemaRegistryManager = $schemaRegistryManager;
         $this->metadata = $metadata;
     }
 
@@ -51,17 +47,11 @@ final readonly class KafkaTransportFactory implements TransportFactoryInterface
                 connection: $connection,
                 metadata: $this->metadata,
                 serializer: $serializer,
-                schemaRegistryManager: ($options->producer->validateSchema)
-                    ? $this->schemaRegistryManager
-                    : null,
             ),
             receiver: new KafkaTransportReceiver(
                 connection: $connection,
                 metadata: $this->metadata,
                 serializer: $serializer,
-                schemaRegistryManager: ($options->consumer->validateSchema)
-                    ? $this->schemaRegistryManager
-                    : null,
             )
         );
     }

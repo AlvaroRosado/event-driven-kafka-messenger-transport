@@ -20,7 +20,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class KafkaBundle extends AbstractBundle
 {
-    protected string $extensionAlias = 'exoticca_kafka_messenger';
+    protected string $extensionAlias = 'kafka_messenger';
 
     public function configure(DefinitionConfigurator $definition): void
     {
@@ -78,24 +78,6 @@ class KafkaBundle extends AbstractBundle
                         ->end()
                     ->end()
                 ->end()
-
-                ->arrayNode('schema_registry')->addDefaultsIfNotSet()
-                    ->info('Schema registry configuration')
-                    ->children()
-                        ->scalarNode('base_uri')
-                            ->defaultNull()
-                            ->info('Base URI of the Schema Registry')
-                        ->end()
-                        ->scalarNode('api_key')
-                            ->defaultNull()
-                            ->info('API Key of the Schema Registry')
-                        ->end()
-                        ->scalarNode('api_secret')
-                            ->defaultNull()
-                            ->info('API Secret of the Schema Registry')
-                        ->end()
-                    ->end()
-                ->end()
                 ->scalarNode('serializer')
                     ->defaultNull()
                     ->info('Serializer class to use')
@@ -116,28 +98,10 @@ class KafkaBundle extends AbstractBundle
             ->set(KafkaTransportFactory::class)
             ->args([
                 new Reference(KafkaTransportSettingResolver::class),
-                new Reference(SchemaRegistryManager::class),
                 null,
                 null
             ])
             ->tag('messenger.transport_factory');
-
-        $services
-            ->set(SchemaRegistryManager::class)
-            ->args(
-                [
-                    new Reference(SchemaRegistryHttpClient::class)
-                ]
-            )->tag('exoticca.kafka.transport.schema_registry_manager');
-
-        $services->set(SchemaRegistryHttpClient::class)
-            ->args([
-                $config['schema_registry']["base_uri"],
-                $config['schema_registry']["api_key"],
-                $config['schema_registry']["api_secret"],
-                new Reference(HttpClientInterface::class)
-            ])
-            ->tag('exoticca.kafka.transport.schema_registry_manager');
 
         $kafkaConfigValidator = new SettingManager();
         $kafkaConfigValidator->setupConsumerOptions($config, 'In exoticca_kafka_messenger.consumer configuration');
@@ -145,7 +109,7 @@ class KafkaBundle extends AbstractBundle
 
         $kafkaTransportDefinition = $builder->getDefinition(KafkaTransportFactory::class);
 
-        $kafkaTransportDefinition->replaceArgument(3, $config);
+        $kafkaTransportDefinition->replaceArgument(2, $config);
     }
 
     public function build(ContainerBuilder $container): void

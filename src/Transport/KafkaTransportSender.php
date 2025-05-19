@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ARO\KafkaMessenger\Transport;
 
 use Exception;
-use ARO\KafkaMessenger\SchemaRegistry\SchemaRegistryManager;
 use ARO\KafkaMessenger\Transport\Metadata\KafkaMetadataHookInterface;
 use ARO\KafkaMessenger\Transport\Serializer\MessageSerializer;
 use ARO\KafkaMessenger\Transport\Stamp\KafkaForceFlushStamp;
@@ -25,7 +24,6 @@ final class KafkaTransportSender implements SenderInterface
         private KafkaConnection             $connection,
         private ?KafkaMetadataHookInterface $metadata = null,
         private ?SerializerInterface        $serializer = new PhpSerializer(),
-        private ?SchemaRegistryManager      $schemaRegistryManager = null,
     ) {
     }
 
@@ -38,10 +36,6 @@ final class KafkaTransportSender implements SenderInterface
         }
 
         $decodedEnvelope = $this->serializer->encode($envelope);
-
-        if ($this->schemaRegistryManager && $this->serializer instanceof PhpSerializer) {
-            throw new TransportException('Schema registry is enabled but the defined serializer is not compatible with it. You must use a different serializer.');
-        }
 
         $key = null;
         $partition = null;
@@ -86,30 +80,12 @@ final class KafkaTransportSender implements SenderInterface
                 headers: $decodedEnvelope["headers"] ?? [],
                 forceFlush: $forceFlush,
                 identifier: $identifier,
-                beforeProduceConvertBody: fn (string $topic) => $this->encodeWithSchemaRegistry($topic, $decodedEnvelope["body"], $identifier, $targetVersion)
             );
         } catch (Exception $e) {
             throw new TransportException($e->getMessage(), 0, $e);
         }
 
         return $envelope;
-    }
-
-    public function encodeWithSchemaRegistry(
-        string $topic,
-        string $body,
-        ?string $typeName = null,
-        ?int $targetVersion = null
-    ): string {
-        if ($this->schemaRegistryManager) {
-            $body = $this->schemaRegistryManager->encode(
-                body: json_decode($body, true),
-                topic: $topic,
-                messageType: $typeName,
-                version: $targetVersion
-            );
-        }
-        return $body;
     }
 
 }
