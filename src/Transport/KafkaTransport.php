@@ -8,7 +8,7 @@ use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Transport\Receiver\QueueReceiverInterface;
 use Symfony\Component\Messenger\Transport\TransportInterface;
 
-final readonly class KafkaTransport implements TransportInterface, QueueReceiverInterface
+final class KafkaTransport implements TransportInterface, QueueReceiverInterface
 {
     public function __construct(
         private KafkaTransportSender $sender,

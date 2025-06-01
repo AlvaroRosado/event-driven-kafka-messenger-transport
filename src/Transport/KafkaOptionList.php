@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ARO\KafkaMessenger\Transport\Setting;
+namespace ARO\KafkaMessenger\Transport;
 
 /**
  * @see https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md

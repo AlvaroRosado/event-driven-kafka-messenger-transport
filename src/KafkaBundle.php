@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace ARO\KafkaMessenger;
 
 use ARO\KafkaMessenger\DependencyInjection\CompilerPass\KafkaCompilerPass;
-use ARO\KafkaMessenger\SchemaRegistry\SchemaRegistryHttpClient;
-use ARO\KafkaMessenger\SchemaRegistry\SchemaRegistryManager;
+use ARO\KafkaMessenger\Transport\Configuration\Consumer\ConsumerConfigurationValidator;
+use ARO\KafkaMessenger\Transport\Configuration\ConfigurationBuilder;
+use ARO\KafkaMessenger\Transport\Configuration\Producer\ProducerConfigurationValidator;
+use ARO\KafkaMessenger\Transport\Configuration\SettingManager;
 use ARO\KafkaMessenger\Transport\KafkaTransportFactory;
 use ARO\KafkaMessenger\Transport\KafkaTransportSettingResolver;
-use ARO\KafkaMessenger\Transport\Metadata\KafkaMetadataHookInterface;
-use ARO\KafkaMessenger\Transport\Setting\SettingManager;
+use ARO\KafkaMessenger\Transport\Hook\KafkaTransportHookInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class KafkaBundle extends AbstractBundle
 {
@@ -26,29 +26,16 @@ class KafkaBundle extends AbstractBundle
     {
         $definition->rootNode()
             ->children()
-                ->arrayNode('identifier')->addDefaultsIfNotSet()
-                    ->info('Schema registry configuration')
-                    ->children()
-                        ->scalarNode('staticMethod')
-                            ->isRequired()
-                            ->info('Base URI of the Schema Registry')
-                        ->end()
-                    ->end()
-                ->end()
                 ->arrayNode('consumer')->addDefaultsIfNotSet()
                     ->info('Default configuration for Kafka consumers')
                     ->children()
-                        ->booleanNode('validate_schema')
-                            ->defaultFalse()
-                            ->info('Enable or disable schema validation for consumers')
-                        ->end()
                         ->booleanNode('commit_async')
                             ->defaultTrue()
                             ->info('Use async commit (true/false)')
                         ->end()
                         ->integerNode('consume_timeout_ms')
                             ->defaultNull()
-                            ->info('ConsumerSetting timeout in milliseconds')
+                            ->info('ConsumerConfiguration timeout in milliseconds')
                         ->end()
                         ->arrayNode('config')
                             ->info('Kafka consumer configuration')
@@ -60,10 +47,6 @@ class KafkaBundle extends AbstractBundle
                 ->arrayNode('producer')->addDefaultsIfNotSet()
                     ->info('Default configuration for Kafka producers')
                     ->children()
-                        ->booleanNode('validate_schema')
-                            ->defaultFalse()
-                            ->info('Enable or disable schema validation for producers')
-                        ->end()
                         ->arrayNode('config')
                             ->info('Kafka producer configuration')
                             ->variablePrototype()->end()
@@ -78,10 +61,6 @@ class KafkaBundle extends AbstractBundle
                         ->end()
                     ->end()
                 ->end()
-                ->scalarNode('serializer')
-                    ->defaultNull()
-                    ->info('Serializer class to use')
-                ->end()
             ->end();
     }
 
@@ -89,26 +68,27 @@ class KafkaBundle extends AbstractBundle
     {
         $services = $container->services();
 
-        $services->set(KafkaTransportSettingResolver::class);
+        $services->set(ConfigurationBuilder::class);
 
-        $builder->registerForAutoconfiguration(KafkaMetadataHookInterface::class)
-            ->addTag(KafkaMetadataHookInterface::class);
+        $builder->registerForAutoconfiguration(KafkaTransportHookInterface::class)
+            ->addTag(KafkaTransportHookInterface::class);
 
         $services
             ->set(KafkaTransportFactory::class)
             ->args([
-                new Reference(KafkaTransportSettingResolver::class),
+                new Reference(ConfigurationBuilder::class),
                 null,
                 null
             ])
             ->tag('messenger.transport_factory');
 
-        $kafkaConfigValidator = new SettingManager();
-        $kafkaConfigValidator->setupConsumerOptions($config, 'In exoticca_kafka_messenger.consumer configuration');
-        $kafkaConfigValidator->setupProducerOptions($config, 'In exoticca_kafka_messenger.producer configuration');
+        $consumerValidator = new ConsumerConfigurationValidator();
+        $consumerValidator->validate($config, 'In kafka_messenger.consumer configuration');
+
+        $producerValidator = new ProducerConfigurationValidator();
+        $producerValidator->validate($config, 'In kafka_messenger.consumer configuration');
 
         $kafkaTransportDefinition = $builder->getDefinition(KafkaTransportFactory::class);
-
         $kafkaTransportDefinition->replaceArgument(2, $config);
     }
 

@@ -6,24 +6,24 @@
   "license": "MIT",
   "authors": [
     {
-      "name": "Exoticca",
-      "email": "technology@exoticca.com"
+      "name": "Alvaro Rosado",
+      "email": "alvaro.rosado93@gmail.com"
     }
   ],
   "require": {
-    "php": "^8.3",
+    "php": "^8.0",
     "ext-json": "*",
     "ext-rdkafka": "*",
     "ext-pcntl": "*",
     "phpdocumentor/reflection-docblock": "^5.6",
-    "symfony/config": "^6.0||7.*",
-    "symfony/dependency-injection": "^6.0||7.*",
-    "symfony/http-client": "^6.0||7.*",
-    "symfony/http-kernel": "^6.0||7.*",
-    "symfony/messenger": "^6.0||7.*",
-    "symfony/property-access": "^6.0||7.*",
-    "symfony/property-info": "^6.0||7.*",
-    "symfony/serializer": "^6.0 || ^7.0"
+    "symfony/config": "^5.0||^6.0||7.*",
+    "symfony/dependency-injection": "^5.0||^6.0||7.*",
+    "symfony/http-client":"^5.0||^6.0||7.*",
+    "symfony/http-kernel":"^5.0||^6.0||7.*",
+    "symfony/messenger": "^5.0||^6.0||7.*",
+    "symfony/property-access": "^5.0||^6.0||7.*",
+    "symfony/property-info": "^5.0||^6.0||7.*",
+    "symfony/serializer": "^5.0||^6.0||7.*"
   },
   "autoload": {
     "psr-4": {
@@ -49,7 +49,6 @@
     }
   },
   "require-dev": {
-    "dg/bypass-finals": "^1.9",
     "friendsofphp/php-cs-fixer": "^3.69",
     "kwn/php-rdkafka-stubs": "^2.2",
     "phpunit/phpunit": "^12.0"

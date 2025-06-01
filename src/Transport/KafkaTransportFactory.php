@@ -4,54 +4,58 @@ declare(strict_types=1);
 
 namespace ARO\KafkaMessenger\Transport;
 
-use ARO\KafkaMessenger\Transport\Metadata\KafkaMetadataHookInterface;
+use ARO\KafkaMessenger\Transport\Configuration\ConfigurationBuilder;
+use ARO\KafkaMessenger\Transport\JsonSerializer\JsonSerializer;
+use ARO\KafkaMessenger\Transport\Hook\KafkaTransportHookInterface;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use Symfony\Component\Messenger\Transport\TransportFactoryInterface;
 use Symfony\Component\Messenger\Transport\TransportInterface;
-use ARO\KafkaMessenger\Transport\Serializer\MessageSerializer;
 
-final readonly class KafkaTransportFactory implements TransportFactoryInterface
+final class KafkaTransportFactory implements TransportFactoryInterface
 {
-    private KafkaTransportSettingResolver $configuration;
+    private ConfigurationBuilder $configuration;
     private ?array $globalConfig;
-    private ?KafkaMetadataHookInterface $metadata;
+    private ?KafkaTransportHookInterface $hook;
 
     public function __construct(
-        KafkaTransportSettingResolver $configuration,
-        ?KafkaMetadataHookInterface   $metadata = null,
-        ?array                        $globalConfig = null,
+        ConfigurationBuilder         $configuration,
+        ?KafkaTransportHookInterface $metadata = null,
+        ?array                       $globalConfig = null,
     ) {
         $this->configuration = $configuration;
         $this->globalConfig = $globalConfig;
-        $this->metadata = $metadata;
+        $this->hook = $metadata;
     }
 
     public function createTransport(string $dsn, array $options, SerializerInterface $serializer): TransportInterface
     {
-        $options = $this->configuration->resolve($dsn, $this->globalConfig, $options);
+        $options = $this->configuration->build($dsn, $this->globalConfig, $options);
 
-        $serializer = new MessageSerializer(
-            staticMethodIdentifier: $options->staticMethodIdentifier,
-            routingMap: $options->consumer->routing,
-            serializer: ($options->serializer)
-                ? new $options->serializer
-                : null,
+        $jsonSerializer = new JsonSerializer(
+            routingMap: $options->getConsumer()->routing,
         );
 
+        $customSerializer = $serializer;
+
+        if ($options->isJsonSerializationEnabled()) {
+            $customSerializer = $jsonSerializer;
+        }
+
         $connection = new KafkaConnection(
-            generalSetting: $options,
+            configuration: $options,
+            hook: $this->hook,
         );
 
         return new KafkaTransport(
             sender: new KafkaTransportSender(
                 connection: $connection,
-                metadata: $this->metadata,
-                serializer: $serializer,
+                hook: $this->hook,
+                serializer: $customSerializer,
             ),
             receiver: new KafkaTransportReceiver(
                 connection: $connection,
-                metadata: $this->metadata,
-                serializer: $serializer,
+                hook: $this->hook,
+                serializer: $customSerializer,
             )
         );
     }

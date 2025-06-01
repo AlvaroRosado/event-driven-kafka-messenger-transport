@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ARO\KafkaMessenger\Transport;
 
-use ARO\KafkaMessenger\Transport\Metadata\KafkaMetadataHookInterface;
+use ARO\KafkaMessenger\Transport\Hook\KafkaTransportHookInterface;
 use ARO\KafkaMessenger\Transport\Stamp\KafkaMessageStamp;
 use RdKafka\Message;
 use Symfony\Component\Messenger\Envelope;
@@ -14,11 +14,14 @@ use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 
 final class KafkaTransportReceiver implements ReceiverInterface
 {
+    private ?SerializerInterface $serializer;
+
     public function __construct(
-        private KafkaConnection      $connection,
-        private ?KafkaMetadataHookInterface $metadata = null,
-        private ?SerializerInterface $serializer = new PhpSerializer(),
+        private KafkaConnection              $connection,
+        private ?KafkaTransportHookInterface $hook = null,
+        ?SerializerInterface                 $serializer,
     ) {
+        $this->serializer = $serializer ?? new PhpSerializer();
     }
 
     public function get(array $queues = []): iterable
@@ -51,9 +54,7 @@ final class KafkaTransportReceiver implements ReceiverInterface
 
         $envelope = $this->serializer->decode($messageToConvertToEnvelope);
 
-        if ($this->metadata) {
-            $envelope = $this->metadata->afterConsume($envelope);
-        }
+        $this->hook?->afterConsume($envelope);
 
         yield $envelope->with(new KafkaMessageStamp($message));
     }

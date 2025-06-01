@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace ARO\KafkaMessenger\Transport;
 
+use ARO\KafkaMessenger\Transport\Configuration\Configuration;
+use ARO\KafkaMessenger\Transport\JsonSerializer\HeaderSerializer;
+use ARO\KafkaMessenger\Transport\Hook\KafkaTransportHookInterface;
 use Exception;
-use ARO\KafkaMessenger\Transport\Serializer\MessageSerializer;
-use ARO\KafkaMessenger\Transport\Setting\GeneralSetting;
 use RdKafka\Conf;
 use RdKafka\KafkaConsumer;
 use RdKafka\Message;
@@ -21,15 +22,18 @@ class KafkaConnection
     private const WILDCARD_ROUTING = '*';
     private ?KafkaConsumer $consumer;
     private ?Producer $producer;
-
+    private Configuration $configuration;
     private SignalRegistry $signalRegistry;
+    private ?KafkaTransportHookInterface $hook;
 
     public function __construct(
-        private readonly GeneralSetting      $generalSetting,
+        Configuration                $configuration,
+        ?KafkaTransportHookInterface $hook = null,
     ) {
+        $this->configuration = $configuration;
         $this->signalRegistry = new SignalRegistry();
+        $this->hook = $hook;
     }
-
 
     public function get(
         array $topicsToFilter,
@@ -37,7 +41,7 @@ class KafkaConnection
         $consumer = $this->getConsumer();
 
         if (!$this->consumerSubscribed) {
-            $consumer->subscribe(!empty($topicsToFilter) ? $topicsToFilter : $this->generalSetting->consumer->topics);
+            $consumer->subscribe(!empty($topicsToFilter) ? $topicsToFilter : $this->configuration->getConsumer()->topics);
             $this->consumerSubscribed = true;
         }
         $this->consumerMustBeRunning = true;
@@ -62,11 +66,22 @@ class KafkaConnection
 
             switch ($kafkaMessage->err) {
                 case \RD_KAFKA_RESP_ERR_NO_ERROR:
-                    $messageIdentifier = $kafkaMessage->headers[MessageSerializer::identifierHeaderKey()] ?? null;
-                    $forceAckByRoutingMap = false;
+                    if ($this->hook) {
+                        $kafkaMessage = $this->hook->beforeConsume($kafkaMessage);
+                    }
 
+                    $messageIdentifier = $kafkaMessage->headers[HeaderSerializer::identifierHeaderKey()] ?? null;
+
+
+                    if (!$messageIdentifier && !$this->configuration->isJsonSerializationEnabled()) {
+                        yield $kafkaMessage;
+                        break;
+                    }
+
+                    $forceAckByRoutingMap = false;
                     $messageFoundInRouting = false;
-                    foreach ($this->generalSetting->consumer->routing as $name => $class) {
+
+                    foreach ($this->configuration->getConsumer()->routing as $name => $class) {
                         if ($name == self::WILDCARD_ROUTING) {
                             $messageFoundInRouting = true;
                             break;
@@ -91,18 +106,15 @@ class KafkaConnection
                         break;
                     }
 
-
                     yield $kafkaMessage;
-                    // no break
+
                 case RD_KAFKA_RESP_ERR__TIMED_OUT:
                 case RD_KAFKA_RESP_ERR__TRANSPORT:
                 case RD_KAFKA_RESP_ERR_UNKNOWN_TOPIC_OR_PART:
                 case RD_KAFKA_RESP_ERR__PARTITION_EOF:
                     yield null;
-                    // no break
                 default:
                     throw new \LogicException($kafkaMessage->errstr(), $kafkaMessage->err);
-                    break;
             }
         }
     }
@@ -112,7 +124,7 @@ class KafkaConnection
     {
         $consumer = $this->getConsumer();
 
-        if ($this->generalSetting->consumer->commitAsync) {
+        if ($this->configuration->getConsumer()->commitAsync) {
             $consumer->commitAsync($message);
         } else {
             $consumer->commit($message);
@@ -130,12 +142,20 @@ class KafkaConnection
         ?string   $key = null,
         array    $headers = [],
         bool     $forceFlush = true,
-        string   $identifier = null,
     ): void {
-        $producer = $this->getProducer();
-        $topicFromRouting = $this->generalSetting->producer->routing[$identifier] ?? null;
 
-        foreach ($this->generalSetting->producer->topics as $topic) {
+        $topicFromRouting = null;
+        if ($this->configuration->isJsonSerializationEnabled()) {
+            if (!isset($headers[HeaderSerializer::identifierHeaderKey()])) {
+                throw new \RuntimeException('Header key must be set');
+            }
+            $identifier = $headers[HeaderSerializer::identifierHeaderKey()];
+            $topicFromRouting = $this->configuration->getProducer()->routing[$identifier] ?? null;
+        }
+
+        $producer = $this->getProducer();
+
+        foreach ($this->configuration->getProducer()->topics as $topic) {
             if ($topicFromRouting && $topic != $topicFromRouting) {
                 continue;
             }
@@ -149,7 +169,7 @@ class KafkaConnection
                 $headers,
             );
 
-            $producer->poll($this->generalSetting->producer->flushTimeoutMs);
+            $producer->poll($this->configuration->getProducer()->flushTimeoutMs);
         }
 
         if ($forceFlush) {
@@ -160,7 +180,7 @@ class KafkaConnection
     public function flush(): void
     {
         for ($flushRetries = 0; $flushRetries < 10; ++$flushRetries) {
-            $result = $this->getProducer()->flush($this->generalSetting->producer->flushTimeoutMs);
+            $result = $this->getProducer()->flush($this->configuration->getProducer()->flushTimeoutMs);
 
             if (RD_KAFKA_RESP_ERR_NO_ERROR === $result) {
                 break;
@@ -174,18 +194,18 @@ class KafkaConnection
 
     private function getConsumer(): KafkaConsumer
     {
-        return $this->consumer ??= $this->createConsumer($this->generalSetting->consumer->config);
+        return $this->consumer ??= $this->createConsumer($this->configuration->getConsumer()->config);
     }
 
     private function getProducer(): Producer
     {
-        return $this->producer ??= $this->createProducer($this->generalSetting->producer->config);
+        return $this->producer ??= $this->createProducer($this->configuration->getProducer()->config);
     }
 
     private function getBaseConf(): Conf
     {
         $conf = new Conf();
-        $conf->set('metadata.broker.list', $this->generalSetting->host);
+        $conf->set('metadata.broker.list', $this->configuration->getHost());
         return $conf;
     }
 

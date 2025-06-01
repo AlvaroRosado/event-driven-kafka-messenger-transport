@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace ARO\KafkaMessenger\Transport;
 
+use ARO\KafkaMessenger\Transport\Stamp\KafkaIdentifierStamp;
 use Exception;
-use ARO\KafkaMessenger\Transport\Metadata\KafkaMetadataHookInterface;
-use ARO\KafkaMessenger\Transport\Serializer\MessageSerializer;
-use ARO\KafkaMessenger\Transport\Stamp\KafkaForceFlushStamp;
-use ARO\KafkaMessenger\Transport\Stamp\KafkaMessageKeyStamp;
-use ARO\KafkaMessenger\Transport\Stamp\KafkaMessageVersionStamp;
-use ARO\KafkaMessenger\Transport\Stamp\KafkaNoFlushStamp;
+use ARO\KafkaMessenger\Transport\Hook\KafkaTransportHookInterface;
+use ARO\KafkaMessenger\Transport\Stamp\KafkaKeyStamp;
 use ARO\KafkaMessenger\Transport\Stamp\KafkaMessageStamp;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\TransportException;
@@ -20,19 +17,20 @@ use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 
 final class KafkaTransportSender implements SenderInterface
 {
+    private ?SerializerInterface   $serializer;
+
     public function __construct(
-        private KafkaConnection             $connection,
-        private ?KafkaMetadataHookInterface $metadata = null,
-        private ?SerializerInterface        $serializer = new PhpSerializer(),
+        private KafkaConnection              $connection,
+        private ?KafkaTransportHookInterface $hook = null,
+        ?SerializerInterface                 $serializer,
     ) {
+        $this->serializer = $serializer ?? new PhpSerializer();
     }
 
     public function send(Envelope $envelope): Envelope
     {
-        $targetVersion = $envelope->last(KafkaMessageVersionStamp::class);
-
-        if ($this->metadata) {
-            $envelope = $this->metadata->beforeProduce($envelope);
+        if ($this->hook) {
+            $envelope = $this->hook->beforeProduce($envelope);
         }
 
         $decodedEnvelope = $this->serializer->encode($envelope);
@@ -47,21 +45,9 @@ final class KafkaTransportSender implements SenderInterface
             $key = $messageStamp->key ?? null;
         }
 
-        if ($keyStamp = $envelope->last(KafkaMessageKeyStamp::class)) {
+        if ($keyStamp = $envelope->last(KafkaKeyStamp::class)) {
             $key = $keyStamp->key;
         }
-
-        $forceFlush = true;
-
-        if ($envelope->last(KafkaNoFlushStamp::class)) {
-            $forceFlush = false;
-        }
-
-        if ($envelope->last(KafkaNoFlushStamp::class) && $envelope->last(KafkaForceFlushStamp::class)) {
-            $forceFlush = true;
-        }
-
-        $identifier = $decodedEnvelope["headers"][MessageSerializer::identifierHeaderKey()] ?? throw new Exception('Discriminatory name not found in envelope');
 
         if (!$partition) {
             $partition = \RD_KAFKA_PARTITION_UA;
@@ -78,9 +64,8 @@ final class KafkaTransportSender implements SenderInterface
                 body: $decodedEnvelope["body"],
                 key: $key,
                 headers: $decodedEnvelope["headers"] ?? [],
-                forceFlush: $forceFlush,
-                identifier: $identifier,
             );
+            $this->hook?->afterProduce($envelope);
         } catch (Exception $e) {
             throw new TransportException($e->getMessage(), 0, $e);
         }

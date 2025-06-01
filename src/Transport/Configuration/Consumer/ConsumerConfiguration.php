@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace ARO\KafkaMessenger\Transport\Setting;
+namespace ARO\KafkaMessenger\Transport\Configuration\Consumer;
 
-final readonly class ProducerSetting
+final class ConsumerConfiguration
 {
     /**
+     * @param array<string, mixed> $routing
      * @param array<string, mixed> $config
      * @param array<string> $topics
      */
@@ -14,8 +15,8 @@ final readonly class ProducerSetting
         public array $routing = [],
         public array $config = [],
         public array $topics = [],
-        public int $pollTimeoutMs = 0,
-        public int $flushTimeoutMs = 10000,
+        public int $consumeTimeout = 500,
+        public bool $commitAsync = true,
         public bool $validateSchema = false,
     ) {
     }

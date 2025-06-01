@@ -6,6 +6,9 @@ namespace ARO\KafkaMessenger\Transport\Stamp;
 
 use Symfony\Component\Messenger\Stamp\NonSendableStampInterface;
 
-final class KafkaNoFlushStamp implements NonSendableStampInterface
+final class KafkaKeyStamp implements NonSendableStampInterface
 {
+    public function __construct(public string $key)
+    {
+    }
 }

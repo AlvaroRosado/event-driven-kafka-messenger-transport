@@ -6,7 +6,7 @@ namespace ARO\KafkaMessenger\Transport\Stamp;
 
 use Symfony\Component\Messenger\Stamp\StampInterface;
 
-final class KafkaMessageIdentifierStamp implements StampInterface
+final class KafkaIdentifierStamp implements StampInterface
 {
     public function __construct(public string $identifier)
     {
