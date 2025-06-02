@@ -1,4 +1,4 @@
-# Symfony Kafka Messenger Transport
+# Event Driven Kafka Messenger Transport
 
 A custom transport for Symfony Messenger specifically designed to work with Apache Kafka as an event streaming platform.
 
@@ -15,7 +15,7 @@ Existing packages for Kafka + Symfony Messenger are outdated or don't cover adva
 ## Installation
 
 ```bash
-composer require your-username/symfony-kafka-messenger-transport
+composer require alvarorosado/event-driven-kafka-messenger-transport
 ```
 
 ## Environment Variables
@@ -74,7 +74,7 @@ framework:
 
 *Works like any standard Symfony Messenger transport. Messages are serialized using PHP's native serialization and routed using Symfony's traditional routing system.*
 
-### Advanced Configuration (Event Streaming)
+### Advanced Configuration
 ```yaml
 framework:
   messenger:
@@ -97,7 +97,7 @@ framework:
 
 *When producing, messages are automatically serialized to JSON and sent to Kafka with the message body as JSON and Messenger metadata stored in Kafka headers. When consuming, the transport examines the message type and deserializes it to the corresponding PHP class based on the routing configuration.*
 
-**⚠️ Important**: To use advanced mode, you **must implement the Hook interface** and define `KafkaIdentifierStamp` for each message type. This identifier is used as the JSON key for message type mapping during consumption. See the [Stamp System](#🏷️-stamp-system) section below for complete implementation details.
+**⚠️ Important**: To use advanced mode, you **must implement the Hook interface** and define `KafkaIdentifierStamp` for each message type. This identifier is used as the JSON key for message type mapping during consumption. See the [Stamp System](https://github.com/AlvaroRosado/event-driven-kafka-messenger-transport/blob/main/README.md#%EF%B8%8F-stamp-system) section below for complete implementation details.
 
 ## Key Features
 
@@ -143,14 +143,14 @@ Control Kafka behavior through Stamps in a custom Hook. **This Hook implementati
 
 **Recommended Pattern - Base Message Class:**
 ```php
-abstract class BaseKafkaMessage
+abstract class Message
 {
-    abstract public function getKafkaIdentifier(): string;
+    abstract public function identifier(): string;
 }
 
 class UserRegistered extends BaseKafkaMessage
 {
-    public function getKafkaIdentifier(): string
+    public function identifier(): string
     {
         return 'user_registered';
     }
@@ -174,8 +174,8 @@ class EventStreamingHook implements KafkaTransportHookInterface
         $stamps = [];
         
         // Required for advanced mode: Add identifier for all Kafka messages
-        if ($message instanceof BaseKafkaMessage) {
-            $stamps[] = new KafkaIdentifierStamp($message->getKafkaIdentifier());
+        if ($message instanceof Message) {
+            $stamps[] = new KafkaIdentifierStamp($message->identifier());
         }
         
         // Optional: Add partition key for ordering
@@ -267,23 +267,6 @@ data_pipeline:
           class: 'App\Message\RawEvent'
 ```
 
-### 3. Multi-tenancy
-```php
-public function beforeProduce(Envelope $envelope): Envelope
-{
-    $message = $envelope->getMessage();
-    
-    if ($message instanceof TenantAwareMessage) {
-        return $envelope->with(
-            new KafkaKeyStamp($message->getTenantId()),
-            new KafkaCustomHeadersStamp(['tenant_id' => $message->getTenantId()])
-        );
-    }
-    
-    return $envelope;
-}
-```
-
 ## Best Practices
 
 ### ✅ Consistent Naming
@@ -340,7 +323,6 @@ This project has been inspired by and builds upon ideas from several excellent p
 
 - **[koco/messenger-kafka](https://github.com/KonstantinCodes/messenger-kafka)** - Early Kafka transport implementation that demonstrated basic integration patterns
 - **[symfony/amazon-sqs-messenger](https://github.com/symfony/amazon-sqs-messenger)** - Excellent reference for implementing custom Symfony Messenger transports
-- **[enqueue/enqueue](https://github.com/php-enqueue/enqueue)** - Comprehensive message queue abstraction that provided insights into multi-broker support
 
 Special thanks to the Symfony Messenger team for creating such an extensible and well-designed messaging framework that makes custom transports like this possible.
 
@@ -353,7 +335,3 @@ While inspired by existing packages, this transport introduces several unique fe
 - **Multi-topic production** from single transport configuration
 - **Advanced stamp system** for granular Kafka control
 - **Hook-based extensibility** for custom business logic integration
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
