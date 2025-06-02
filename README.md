@@ -143,14 +143,14 @@ Control Kafka behavior through Stamps in a custom Hook. **This Hook implementati
 
 **Recommended Pattern - Base Message Class:**
 ```php
-abstract class BaseKafkaMessage
+abstract class Message
 {
-    abstract public function getKafkaIdentifier(): string;
+    abstract public function identifier(): string;
 }
 
 class UserRegistered extends BaseKafkaMessage
 {
-    public function getKafkaIdentifier(): string
+    public function identifier(): string
     {
         return 'user_registered';
     }
@@ -174,8 +174,8 @@ class EventStreamingHook implements KafkaTransportHookInterface
         $stamps = [];
         
         // Required for advanced mode: Add identifier for all Kafka messages
-        if ($message instanceof BaseKafkaMessage) {
-            $stamps[] = new KafkaIdentifierStamp($message->getKafkaIdentifier());
+        if ($message instanceof Message) {
+            $stamps[] = new KafkaIdentifierStamp($message->identifier());
         }
         
         // Optional: Add partition key for ordering
