@@ -1,4 +1,4 @@
-# Symfony Kafka Messenger Transport
+# Event Driven Kafka Messenger Transport
 
 A custom transport for Symfony Messenger specifically designed to work with Apache Kafka as an event streaming platform.
 
