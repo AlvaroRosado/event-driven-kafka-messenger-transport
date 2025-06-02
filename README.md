@@ -97,7 +97,7 @@ framework:
 
 *When producing, messages are automatically serialized to JSON and sent to Kafka with the message body as JSON and Messenger metadata stored in Kafka headers. When consuming, the transport examines the message type and deserializes it to the corresponding PHP class based on the routing configuration.*
 
-**⚠️ Important**: To use advanced mode, you **must implement the Hook interface** and define `KafkaIdentifierStamp` for each message type. This identifier is used as the JSON key for message type mapping during consumption. See the [Stamp System](#🏷️-stamp-system) section below for complete implementation details.
+**⚠️ Important**: To use advanced mode, you **must implement the Hook interface** and define `KafkaIdentifierStamp` for each message type. This identifier is used as the JSON key for message type mapping during consumption. See the [Stamp System](#🏷️-stamp-system)](https://github.com/AlvaroRosado/event-driven-kafka-messenger-transport/blob/main/README.md#%EF%B8%8F-stamp-system) section below for complete implementation details.
 
 ## Key Features
 
