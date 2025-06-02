@@ -340,7 +340,6 @@ This project has been inspired by and builds upon ideas from several excellent p
 
 - **[koco/messenger-kafka](https://github.com/KonstantinCodes/messenger-kafka)** - Early Kafka transport implementation that demonstrated basic integration patterns
 - **[symfony/amazon-sqs-messenger](https://github.com/symfony/amazon-sqs-messenger)** - Excellent reference for implementing custom Symfony Messenger transports
-- **[enqueue/enqueue](https://github.com/php-enqueue/enqueue)** - Comprehensive message queue abstraction that provided insights into multi-broker support
 
 Special thanks to the Symfony Messenger team for creating such an extensible and well-designed messaging framework that makes custom transports like this possible.
 
@@ -353,7 +352,3 @@ While inspired by existing packages, this transport introduces several unique fe
 - **Multi-topic production** from single transport configuration
 - **Advanced stamp system** for granular Kafka control
 - **Hook-based extensibility** for custom business logic integration
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
