@@ -147,7 +147,7 @@ class KafkaConnection
         $topicFromRouting = null;
         if ($this->configuration->isJsonSerializationEnabled()) {
             if (!isset($headers[HeaderSerializer::identifierHeaderKey()])) {
-                throw new \RuntimeException('Header key must be set');
+                throw new \RuntimeException('Identifier stamp has not been set in headers. This is required for JSON serialization.');
             }
             $identifier = $headers[HeaderSerializer::identifierHeaderKey()];
             $topicFromRouting = $this->configuration->getProducer()->routing[$identifier] ?? null;
