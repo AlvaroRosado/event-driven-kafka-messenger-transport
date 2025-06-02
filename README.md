@@ -74,7 +74,7 @@ framework:
 
 *Works like any standard Symfony Messenger transport. Messages are serialized using PHP's native serialization and routed using Symfony's traditional routing system.*
 
-### Advanced Configuration (Event Streaming)
+### Advanced Configuration
 ```yaml
 framework:
   messenger:
