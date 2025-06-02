@@ -15,7 +15,7 @@ Existing packages for Kafka + Symfony Messenger are outdated or don't cover adva
 ## Installation
 
 ```bash
-composer require your-username/symfony-kafka-messenger-transport
+composer require alvarorosado/event-driven-kafka-messenger-transport
 ```
 
 ## Environment Variables
