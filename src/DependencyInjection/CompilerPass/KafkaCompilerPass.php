@@ -16,7 +16,7 @@ class KafkaCompilerPass implements CompilerPassInterface
         foreach ($container->findTaggedServiceIds(KafkaTransportHookInterface::class) as $id => $tags) {
             $definition = $container->getDefinition($id);
             $kafkaTransportDefinition = $container->getDefinition(KafkaTransportFactory::class);
-            $kafkaTransportDefinition->replaceArgument(2, $definition);
+            $kafkaTransportDefinition->replaceArgument(1, $definition);
             return;
         }
     }
