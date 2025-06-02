@@ -267,23 +267,6 @@ data_pipeline:
           class: 'App\Message\RawEvent'
 ```
 
-### 3. Multi-tenancy
-```php
-public function beforeProduce(Envelope $envelope): Envelope
-{
-    $message = $envelope->getMessage();
-    
-    if ($message instanceof TenantAwareMessage) {
-        return $envelope->with(
-            new KafkaKeyStamp($message->getTenantId()),
-            new KafkaCustomHeadersStamp(['tenant_id' => $message->getTenantId()])
-        );
-    }
-    
-    return $envelope;
-}
-```
-
 ## Best Practices
 
 ### ✅ Consistent Naming
