@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ARO\KafkaMessenger\Transport;
 
-use ARO\KafkaMessenger\Transport\Stamp\KafkaIdentifierStamp;
 use Exception;
 use ARO\KafkaMessenger\Transport\Hook\KafkaTransportHookInterface;
 use ARO\KafkaMessenger\Transport\Stamp\KafkaKeyStamp;

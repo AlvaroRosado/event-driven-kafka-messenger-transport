@@ -1,35 +1,16 @@
 # Symfony Kafka Messenger Transport
 
-A custom transport for Symfony Messenger specifically designed to work with Apache Kafka as an event streaming platform, not just as a traditional message queue.
+A custom transport for Symfony Messenger specifically designed to work with Apache Kafka as an event streaming platform.
 
 ## Why another Kafka transport?
 
-Existing packages for Kafka + Symfony Messenger are often outdated or don't cover advanced event streaming use cases. This transport is designed for:
+Existing packages for Kafka + Symfony Messenger are outdated or don't cover advanced event streaming use cases. This transport is designed for:
 
-- **Event Streaming**: Optimized for real-time event flows, not just message queuing
+- **Event Streaming**: Optimized for real-time event flows
 - **Flexibility**: Granular configuration for producers and consumers
 - **Simplicity**: Automatic JSON serialization without additional configuration
 - **Multi-topic**: Produce to multiple topics with a single configuration
-
-## Key Features
-
-### Multi-topic with single configuration
-Produce the same message to different topics simultaneously, ideal for distributed event architectures.
-
-### 📋 Global and specific configuration
-Define base configurations for all transports and customize each one according to specific needs.
-
-### Flexible event flows
-A transport can consume from one topic and produce to a completely different one, enabling complex processing pipelines.
-
-### Automatic JSON serialization
-Without needing to create custom serializers, automatically handles conversion between PHP objects and JSON.
-
-### Advanced Stamp system
-Granular control over metadata, partition keys, and custom headers.
-
-### Event Streaming with multiple message types
-Allows multiple message types in the same topic, using the routing system to selectively process only the events you need. Messages not included in routing are automatically committed, enabling complex event streaming scenarios.
+- **Selective Consumption**: Consume specific event types from topics containing multiple event types
 
 ## Installation
 
@@ -37,88 +18,20 @@ Allows multiple message types in the same topic, using the routing system to sel
 composer require your-username/symfony-kafka-messenger-transport
 ```
 
-## Basic Mode vs Advanced Mode
+## Environment Variables
 
-This transport can work in two different modes depending on your needs:
-
-### Basic Mode (PHP serialization by default)
-
-By default, the transport works like any other Symfony Messenger transport, using standard PHP serialization:
-
-```yaml
-# config/packages/messenger.yaml
-framework:
-  messenger:
-    transports:
-      kafka_events:
-        dsn: '%env(KAFKA_EVENTS_MESSENGER_TRANSPORT_DSN)%'
-        options:
-          topics: ['test_topic']
-          json_serialization:
-            enabled: false  # Default
-          consumer:
-            config:
-              group.id: '%env(APP_ENV)%-app-test-events'
-    routing:
-      'App\Message\TestMessage': kafka_events
+```bash
+# .env
+KAFKA_DSN=kafka://localhost:9092
+KAFKA_SECURITY_PROTOCOL=PLAINTEXT
+KAFKA_USERNAME=your_username
+KAFKA_PASSWORD=your_password
+APP_ENV=dev
 ```
 
-In this mode:
-- **Standard serialization**: Messages are serialized using Symfony's PHP serializer
-- **Simple routing**: Uses Messenger's traditional routing system
-- **One type per transport**: Each transport typically handles a single message type
-- **Less flexibility**: You can't selectively filter messages by topic
+## Required Configuration File
 
-### Advanced Mode (Event Streaming)
-
-By enabling JSON serialization and custom routing, you unlock all advanced features:
-
-```yaml
-framework:
-  messenger:
-    transports:
-      kafka_events:
-        dsn: '%env(KAFKA_EVENTS_MESSENGER_TRANSPORT_DSN)%'
-        options:
-          topics: ['test_topic']
-          json_serialization:
-            enabled: true  # Enables advanced mode
-          consumer:
-            routing:
-              - name: 'test_message'
-                class: 'App\Message\TestMessage'
-            config:
-              group.id: '%env(APP_ENV)%-app-test-events'
-```
-
-In this mode you get:
-- **Automatic JSON serialization**: Interoperability with other systems
-- **Multiple types per topic**: A topic can contain different event types
-- **Selective filtering**: Process only the events you configure in routing
-- **Real event streaming**: True heterogeneous event streams
-- **Custom headers**: Full control over Kafka metadata
-- **Multi-topic**: Produce to multiple topics simultaneously
-
-### When to use each mode?
-
-**Use basic mode when**:
-- You only need a simple message queue
-- You work exclusively with PHP applications
-- You don't need interoperability with other systems
-- You want maximum compatibility with the Symfony ecosystem
-
-**Use advanced mode when**:
-- You implement event streaming architectures
-- You need interoperability with non-PHP systems
-- You want multiple event types in the same topic
-- You need selective message filtering
-- You work with distributed microservices
-
-## Configuration
-
-### Global Configuration
-
-Create a global configuration file to define base configurations that will apply to all transports:
+Create the global configuration file for Kafka settings:
 
 ```yaml
 # config/packages/kafka_messenger.yaml
@@ -127,70 +40,51 @@ kafka_messenger:
     commit_async: true
     consume_timeout_ms: 500
     config:
-      group.id: 'rms-api'
-      security.protocol: "%env(KAFKA_EVENTS_MESSENGER_TRANSPORT_SECURITY_PROTOCOL)%"
-      sasl.mechanisms: "%env(KAFKA_EVENTS_MESSENGER_TRANSPORT_SASL_MECHANISMS)%"
-      sasl.username: "%env(KAFKA_EVENTS_MESSENGER_TRANSPORT_SASL_USERNAME)%"
-      sasl.password: "%env(KAFKA_EVENTS_MESSENGER_TRANSPORT_SASL_PASSWORD)%"
-      allow.auto.create.topics: 'true'
+      group.id: 'default-group'
+      security.protocol: "%env(KAFKA_SECURITY_PROTOCOL)%"
+      sasl.username: "%env(KAFKA_USERNAME)%"
+      sasl.password: "%env(KAFKA_PASSWORD)%"
       auto.offset.reset: 'earliest'
-      enable.partition.eof: 'true'
-      queued.max.messages.kbytes: '10000' # 10MB
-      partition.assignment.strategy: 'roundrobin'
-      max.poll.interval.ms: '600000' # 10 minutes
-      socket.keepalive.enable: 'true'
-      fetch.max.bytes: '104857600'
-      max.partition.fetch.bytes: '52428800'
-      topic.metadata.refresh.interval.ms: '60000'
   producer:
     config:
-      security.protocol: "%env(KAFKA_EVENTS_MESSENGER_TRANSPORT_SECURITY_PROTOCOL)%"
-      sasl.mechanisms: "%env(KAFKA_EVENTS_MESSENGER_TRANSPORT_SASL_MECHANISMS)%"
-      sasl.username: "%env(KAFKA_EVENTS_MESSENGER_TRANSPORT_SASL_USERNAME)%"
-      sasl.password: "%env(KAFKA_EVENTS_MESSENGER_TRANSPORT_SASL_PASSWORD)%"
-      allow.auto.create.topics: 'true'
+      security.protocol: "%env(KAFKA_SECURITY_PROTOCOL)%"
+      sasl.username: "%env(KAFKA_USERNAME)%"
+      sasl.password: "%env(KAFKA_PASSWORD)%"
       enable.idempotence: 'false'
-      max.in.flight.requests.per.connection: '1000000'
 ```
 
-### Per-Transport Configuration
+## Quick Start
 
-Each transport can override global configurations according to its specific needs:
-
+### Basic Configuration
 ```yaml
 # config/packages/messenger.yaml
 framework:
   messenger:
     transports:
       kafka_events:
-        dsn: '%env(KAFKA_EVENTS_MESSENGER_TRANSPORT_DSN)%'
+        dsn: '%env(KAFKA_DSN)%'
+        options:
+          topics: ['user_events']
+          consumer:
+            config:
+              group.id: '%env(APP_ENV)%-app-events'
+    routing:
+      'App\Message\UserRegistered': kafka_events
+```
+
+*Works like any standard Symfony Messenger transport. Messages are serialized using PHP's native serialization and routed using Symfony's traditional routing system.*
+
+### Advanced Configuration (Event Streaming)
+```yaml
+framework:
+  messenger:
+    transports:
+      kafka_events:
+        dsn: '%env(KAFKA_DSN)%'
         options:
           topics: ['user_events']
           json_serialization:
-            enabled: true
-          consumer:
-            routing:
-              - name: 'user_registered'
-                class: 'App\Message\UserRegistered'
-            config:
-              group.id: '%env(APP_ENV)%-app-user-events'  # Overrides global group.id
-```
-
-**Important about group.id**: In Kafka, the `group.id` determines which consumers belong to the same group. Consumers in the same group share the partitions of topics, but each message is only processed by one consumer in the group. It's crucial to use a specific `group.id` for each use case to prevent different services from interfering with each other.
-
-### Multi-topic Configuration
-
-```yaml
-# config/packages/messenger.yaml
-framework:
-  messenger:
-    transports:
-      kafka_events:
-        dsn: '%env(KAFKA_EVENTS_MESSENGER_TRANSPORT_DSN)%'
-        options:
-          topics: ['user_events', 'audit_events', 'notification_events']
-          json_serialization:
-            enabled: true
+            enabled: true  # Enables advanced mode
           consumer:
             routing:
               - name: 'user_registered'
@@ -201,262 +95,173 @@ framework:
               group.id: '%env(APP_ENV)%-app-events'
 ```
 
-## Automatic JSON Serialization
+*When producing, messages are automatically serialized to JSON and sent to Kafka with the message body as JSON and Messenger metadata stored in Kafka headers. When consuming, the transport examines the message type and deserializes it to the corresponding PHP class based on the routing configuration.*
 
-### How does it work?
+**⚠️ Important**: To use advanced mode, you **must implement the Hook interface** and define `KafkaIdentifierStamp` for each message type. This identifier is used as the JSON key for message type mapping during consumption. See the [Stamp System](#🏷️-stamp-system) section below for complete implementation details.
 
-1. **When producing**: Your PHP object is automatically serialized to JSON
-2. **When consuming**: The JSON is automatically deserialized to the correct PHP object using the routing system
+## Key Features
 
-### Routing Configuration
+### 🔄 Two Operation Modes
 
-Routing determines which PHP class to use for deserializing each message type:
+| Feature | Basic Mode | Advanced Mode |
+|---|---|---|
+| Serialization | Native PHP | Automatic JSON |
+| Types per topic | Single | Multiple |
+| Selective filtering | No | Yes |
+| Interoperability | PHP only | Multi-language |
+| Routing | Symfony standard | Custom |
+
+**When to use each mode?**
+
+- **Basic Mode**: Simple message queues, PHP only, maximum compatibility
+- **Advanced Mode**: Event streaming, microservices, interoperability, selective filtering
+
+### 🎯 Selective Event Streaming
+
+Process only the events you need from a topic with multiple types:
 
 ```yaml
+# Topic: user_events (contains: user_registered, user_updated, user_deleted)
 consumer:
   routing:
-    - name: 'user_registered'      # Message identifier in Kafka
-      class: 'App\Message\UserRegistered'  # Target PHP class
-    - name: 'order_created'
-      class: 'App\Message\OrderCreated'
+    # Only process registrations and updates
+    - name: 'user_registered'
+      class: 'App\Message\UserRegistered'
+    - name: 'user_updated'  
+      class: 'App\Message\UserUpdated'
+    # user_deleted is automatically ignored
 ```
 
-## Advanced Event Streaming
-
-### Multiple message types in a topic
-
-One of the most powerful features of this transport is the ability to handle multiple message types within the same topic, creating true event streams.
-
-#### How does selective filtering work?
-
-When you have a topic with multiple event types (for example: `user_registered`, `user_updated`, `user_deleted`) and you only want to process some of them, you can configure routing to include only the events you're interested in:
-
-```yaml
-# Topic with multiple event types: user_events
-kafka_user_processor:
-  dsn: '%env(KAFKA_DSN)%'
-  options:
-    topics: ['user_events']  # Topic containing multiple types
-    json_serialization:
-      enabled: true
-    consumer:
-      routing:
-        # Only process registrations and updates, ignore deletions
-        - name: 'user_registered'
-          class: 'App\Message\UserRegistered'
-        - name: 'user_updated'
-          class: 'App\Message\UserUpdated'
-        # user_deleted is not in routing, automatically committed
-      config:
-        group.id: 'user-processor-service'
-```
-
-#### Advantages of this approach
-
-**Selective processing**: The transport automatically commits (marks as processed) all messages that don't match any configured routing. This means:
-
-- `user_deleted` messages are skipped without processing
+**Advantages:**
+- Unconfigured messages are automatically committed
 - They don't accumulate in the queue
-- They don't affect consumer performance
-- They allow other services to process them if needed
+- Multiple services can process different subsets of the same topic
 
-**Multiple specialized consumers**: Different services can consume the same topic but process different subsets of events:
+### 🏷️ Stamp System
 
-```yaml
-# Notification service - only processes registrations
-notification_service:
-  options:
-    topics: ['user_events']
-    consumer:
-      routing:
-        - name: 'user_registered'
-          class: 'App\Message\UserRegistered'
-      config:
-        group.id: 'notification-service'
+Control Kafka behavior through Stamps in a custom Hook. **This Hook implementation is required for advanced mode** to properly handle JSON serialization and message routing.
 
-# Audit service - processes all events
-audit_service:
-  options:
-    topics: ['user_events']
-    consumer:
-      routing:
-        - name: 'user_registered'
-          class: 'App\Message\UserRegistered'
-        - name: 'user_updated'
-          class: 'App\Message\UserUpdated'
-        - name: 'user_deleted'
-          class: 'App\Message\UserDeleted'
-      config:
-        group.id: 'audit-service'
+**Recommended Pattern - Base Message Class:**
+```php
+abstract class BaseKafkaMessage
+{
+    abstract public function getKafkaIdentifier(): string;
+}
+
+class UserRegistered extends BaseKafkaMessage
+{
+    public function getKafkaIdentifier(): string
+    {
+        return 'user_registered';
+    }
+}
 ```
 
-#### Typical use cases
-
-**Event Sourcing**: A topic can contain the entire event history of an aggregate, and different services can reconstruct state by processing only the events they need.
-
-**Specialized microservices**: Each service subscribes to the same stream but processes only events relevant to its domain.
-
-**Processing pipelines**: Create processing chains where each stage consumes certain events and produces others.
-
-## Transport Hooks and Stamps
-
-The hook system allows you to intercept and modify messages at key points in processing, and it's where you'll typically add the Stamps that control Kafka behavior. This is **application-specific logic** that you need to customize based on your message types and business requirements.
-
-### How it works
-
-Simply implement the `KafkaTransportHookInterface` and the transport will automatically detect your implementation. This interface provides four key methods that are called at different stages of message processing:
-
+**Complete Hook Implementation:**
 ```php
 <?php
-
 namespace App\Transport\Hook;
 
-use App\Message\UserRegistered;
-use App\Message\OrderCreated;
 use App\Transport\Hook\KafkaTransportHookInterface;
-use App\Transport\Stamp\KafkaIdentifierStamp;
-use App\Transport\Stamp\KafkaKeyStamp;
-use App\Transport\Stamp\KafkaCustomHeadersStamp;
+use App\Transport\Stamp\{KafkaIdentifierStamp, KafkaKeyStamp, KafkaCustomHeadersStamp};
 use Symfony\Component\Messenger\Envelope;
-use RdKafka\Message;
 
 class EventStreamingHook implements KafkaTransportHookInterface
 {
-    /**
-     * Called before producing a message to Kafka
-     * This is where you add Stamps to control Kafka behavior
-     */
     public function beforeProduce(Envelope $envelope): Envelope
     {
         $message = $envelope->getMessage();
         $stamps = [];
         
-        // Add KafkaIdentifierStamp for routing
-        switch (true) {
-            case $message instanceof UserRegistered:
-                $stamps[] = new KafkaIdentifierStamp('user_registered');
-                $stamps[] = new KafkaKeyStamp($message->getUserId());
-                break;
-                
-            case $message instanceof OrderCreated:
-                $stamps[] = new KafkaIdentifierStamp('order_created');
-                $stamps[] = new KafkaKeyStamp($message->getCustomerId());
-                // Add custom headers
-                $stamps[] = new KafkaCustomHeadersStamp([
-                    'source_system' => 'order-service',
-                    'tenant_id' => $message->getTenantId()
-                ]);
-                break;
+        // Required for advanced mode: Add identifier for all Kafka messages
+        if ($message instanceof BaseKafkaMessage) {
+            $stamps[] = new KafkaIdentifierStamp($message->getKafkaIdentifier());
+        }
+        
+        // Optional: Add partition key for ordering
+        if ($message instanceof UserRegistered) {
+            $stamps[] = new KafkaKeyStamp($message->getUserId());
+        }
+        
+        // Optional: Add custom headers
+        if ($message instanceof TenantAwareMessage) {
+            $stamps[] = new KafkaCustomHeadersStamp([
+                'tenant_id' => $message->getTenantId()
+            ]);
         }
         
         return $envelope->with(...$stamps);
     }
     
-    /**
-     * Called after successfully producing a message to Kafka
-     * Useful for logging, metrics, notifications, etc.
-     */
     public function afterProduce(Envelope $envelope): void
     {
-        $this->logger->info('Message produced to Kafka', [
-            'message_type' => get_class($envelope->getMessage()),
-            'topic' => $this->getTopicFromEnvelope($envelope)
-        ]);
-        
-        $this->metrics->increment('kafka.message.produced');
+        // Logging, metrics, etc.
     }
     
-    /**
-     * Called before consuming a message from Kafka
-     * Useful for message validation, transformation, etc.
-     */
-    public function beforeConsume(Message $message): Message
+    public function beforeConsume(\RdKafka\Message $message): \RdKafka\Message
     {
-        // Example: Validate message format
-        if (!$this->isValidMessage($message)) {
-            throw new \InvalidArgumentException('Invalid message format');
-        }
-        
-        // Example: Transform message before processing
-        return $this->transformMessage($message);
+        // Validation, transformation, etc.
+        return $message;
     }
     
-    /**
-     * Called after successfully consuming and processing a message
-     * Useful for cleanup, final logging, etc.
-     */
     public function afterConsume(Envelope $envelope): void
     {
+        // Cleanup, final logging, etc.
     }
 }
 ```
 
-### Available Stamps
+## Configuration
 
-These are the Stamps you can add in the `beforeProduce` method to control Kafka behavior:
+### 🎛️ Per-Transport Configuration
 
-#### KafkaIdentifierStamp
-**Purpose**: Identifies the message type for consumption routing (required for JSON serialization mode).
+Each transport can override global configurations:
 
-```php
-$stamps[] = new KafkaIdentifierStamp('user_registered');
+```yaml
+# config/packages/messenger.yaml
+framework:
+  messenger:
+    transports:
+      kafka_events:
+        dsn: '%env(KAFKA_DSN)%'
+        options:
+          topics: ['user_events', 'audit_events']  # Multi-topic
+          json_serialization:
+            enabled: true
+          consumer:
+            routing:
+              - name: 'user_registered'
+                class: 'App\Message\UserRegistered'
+            config:
+              group.id: '%env(APP_ENV)%-user-events'  # Overrides global
+              auto.offset.reset: 'latest'             # Only new messages
 ```
-
-#### KafkaKeyStamp
-**Purpose**: Defines the partition key to guarantee message ordering within partitions.
-
-```php
-// Messages with the same key go to the same partition
-$stamps[] = new KafkaKeyStamp($user->getId());
-```
-
-#### KafkaCustomHeadersStamp
-**Purpose**: Adds custom headers to messages for metadata, tracing, etc.
-
-```php
-$stamps[] = new KafkaCustomHeadersStamp([
-    'source_system' => 'user-service',
-    'correlation_id' => $correlationId,
-    'tenant_id' => $tenantId
-]);
-```
-
-### Important Notes
-
-- **Application-specific**: The hook implementation is completely up to you and depends on your message types and business logic
-- **Automatic detection**: No service configuration needed - just implement the interface
-- **Stamp timing**: Stamps must be added in `beforeProduce` - they won't work in other methods
-- **Error handling**: You can throw exceptions in any hook method to halt processing
 
 ## Common Use Cases
 
 ### 1. Event Sourcing
 ```yaml
-kafka_events:
-  dsn: '%env(KAFKA_DSN)%'
+domain_events:
   options:
     topics: ['domain_events']
     json_serialization:
       enabled: true
     consumer:
       routing:
-        - name: 'user_registered'
-          class: 'App\Event\UserRegistered'
-        - name: 'user_updated'
-          class: 'App\Event\UserUpdated'
+        - name: 'aggregate_created'
+          class: 'App\Event\AggregateCreated'
+        - name: 'aggregate_updated'
+          class: 'App\Event\AggregateUpdated'
 ```
 
 ### 2. Transformation Pipeline
 ```yaml
 # Consume from one topic, process and produce to another
 data_pipeline:
-  dsn: '%env(KAFKA_DSN)%'
   options:
-    topics: ['processed_data']  # Output topic
-    json_serialization:
-      enabled: true
+    topics: ['processed_data']      # Output topic
     consumer:
-      topics: ['raw_data']      # Input topic (different)
+      topics: ['raw_data']          # Input topic (different)
       routing:
         - name: 'raw_event'
           class: 'App\Message\RawEvent'
@@ -469,14 +274,10 @@ public function beforeProduce(Envelope $envelope): Envelope
     $message = $envelope->getMessage();
     
     if ($message instanceof TenantAwareMessage) {
-        $stamps = [
+        return $envelope->with(
             new KafkaKeyStamp($message->getTenantId()),
-            new KafkaCustomHeadersStamp([
-                'tenant_id' => $message->getTenantId()
-            ])
-        ];
-        
-        return $envelope->with(...$stamps);
+            new KafkaCustomHeadersStamp(['tenant_id' => $message->getTenantId()])
+        );
     }
     
     return $envelope;
@@ -485,104 +286,73 @@ public function beforeProduce(Envelope $envelope): Envelope
 
 ## Best Practices
 
-### 1. Consistent Message Identifiers
+### ✅ Consistent Naming
 ```php
 // ❌ Avoid
-$stamps[] = new KafkaIdentifierStamp('userReg');
-$stamps[] = new KafkaIdentifierStamp('user-registered');
+new KafkaIdentifierStamp('userReg');
+new KafkaIdentifierStamp('user-registered');
 
 // ✅ Recommended
-$stamps[] = new KafkaIdentifierStamp('user_registered');
+new KafkaIdentifierStamp('user_registered');
 ```
 
-### 2. Effective Partition Keys
+### ✅ Effective Partition Keys
 ```php
-// ✅ For user events, use user ID
-$stamps[] = new KafkaKeyStamp($user->getId());
+// For user events, use user ID
+new KafkaKeyStamp($user->getId());
 
-// ✅ For order events, use customer ID
-$stamps[] = new KafkaKeyStamp($order->getCustomerId());
+// For order events, use customer ID
+new KafkaKeyStamp($order->getCustomerId());
 ```
 
-### 3. Specific Group IDs
+### ✅ Specific Group IDs
 ```yaml
-# ❌ Avoid using the same group.id for different services
-consumer:
-  config:
-    group.id: 'app'  # Too generic
+# ❌ Avoid generic IDs
+group.id: 'app'
 
-# ✅ Use specific group.ids per functionality
-consumer:
-  config:
-    group.id: '%env(APP_ENV)%-user-service-events'  # Specific and with environment
+# ✅ Specific IDs with environment
+group.id: '%env(APP_ENV)%-user-service-events'
 ```
 
-### 4. Centralized Routing
-```php
-class MessageRouter
-{
-    private const MESSAGE_TYPES = [
-        UserRegistered::class => 'user_registered',
-        UserUpdated::class => 'user_updated',
-        OrderCreated::class => 'order_created',
-    ];
-    
-    public function getIdentifier(object $message): ?string
-    {
-        return self::MESSAGE_TYPES[get_class($message)] ?? null;
-    }
-}
-```
+## Available Stamps
 
-### 5. Error Handling
-```php
-public function afterConsume(Envelope $envelope): void
-{
-    $stamps = $envelope->all();
-    
-    if (isset($stamps[ErrorStamp::class])) {
-        $this->handleFailedMessage($envelope);
-    }
-}
-```
+| Stamp | Purpose | Example |
+|---|---|---|
+| `KafkaIdentifierStamp` | Identifies message type for routing | `new KafkaIdentifierStamp('user_registered')` |
+| `KafkaKeyStamp` | Defines partition key | `new KafkaKeyStamp($userId)` |
+| `KafkaCustomHeadersStamp` | Adds custom headers | `new KafkaCustomHeadersStamp(['tenant_id' => $id])` |
 
-## Environment Variables
+## Important Notes
 
-```bash
-# .env
-KAFKA_EVENTS_MESSENGER_TRANSPORT_DSN=kafka://localhost:9092
-APP_ENV=dev
-```
+### Hook System
+- **Automatic detection**: Just implement `KafkaTransportHookInterface` - no service configuration needed
+- **Application-specific**: Hook implementation depends on your message types and business logic
+- **Stamp timing**: Stamps must be added in `beforeProduce` method
+- **Error handling**: You can throw exceptions in any hook method to halt processing
 
-## Advanced Configuration
+### Group ID Strategy
+In Kafka, `group.id` determines which consumers belong to the same group. Consumers in the same group share topic partitions, but each message is only processed by one consumer in the group. Use specific `group.id` for each use case to prevent different services from interfering with each other.
 
-The global configuration defined in `kafka_messenger.yaml` can be completely overridden in each specific transport. This allows you to have common base configurations and specific customizations according to the needs of each event flow.
 
-### Transport Override Example
-```yaml
-# Override producer configurations for a specific transport
-kafka_events:
-  dsn: '%env(KAFKA_DSN)%'
-  options:
-    topics: ['critical_events']
-    producer:
-      config:
-        acks: 'all'          # Overrides global configuration
-        retries: 5           # More retries for critical events
-        batch.size: 1        # Immediate sending for critical events
-    consumer:
-      config:
-        group.id: '%env(APP_ENV)%-critical-events'  # Specific group ID
-        auto.offset.reset: 'latest'                 # Only new messages
-```
+### Inspiration and References
 
-## Contributing
+This project has been inspired by and builds upon ideas from several excellent packages in the PHP/Symfony ecosystem:
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/new-feature`)
-3. Commit your changes (`git commit -am 'Add new feature'`)
-4. Push to the branch (`git push origin feature/new-feature`)
-5. Create a Pull Request
+- **[koco/messenger-kafka](https://github.com/KonstantinCodes/messenger-kafka)** - Early Kafka transport implementation that demonstrated basic integration patterns
+- **[symfony/amazon-sqs-messenger](https://github.com/symfony/amazon-sqs-messenger)** - Excellent reference for implementing custom Symfony Messenger transports
+- **[enqueue/enqueue](https://github.com/php-enqueue/enqueue)** - Comprehensive message queue abstraction that provided insights into multi-broker support
+
+Special thanks to the Symfony Messenger team for creating such an extensible and well-designed messaging framework that makes custom transports like this possible.
+
+### Differences from Existing Solutions
+
+While inspired by existing packages, this transport introduces several unique features:
+
+- **True event streaming support** with selective message filtering
+- **Automatic JSON serialization** without complex configuration
+- **Multi-topic production** from single transport configuration
+- **Advanced stamp system** for granular Kafka control
+- **Hook-based extensibility** for custom business logic integration
 
 ## License
 
