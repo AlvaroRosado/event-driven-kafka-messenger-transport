@@ -4,7 +4,24 @@ A custom transport for Symfony Messenger specifically designed to work with Apac
 
 ## Why another Kafka transport?
 
-Existing packages for Kafka + Symfony Messenger are outdated or don't cover advanced event streaming use cases. This transport is designed for:
+Existing packages for Kafka + Symfony Messenger are outdated or don't cover advanced event streaming use cases. Additionally, Symfony Messenger's serialization has limitations for event streaming scenarios:
+
+**Default PHP Serialization**: Messenger uses PHP's native serializer by default, which produces binary data that's only readable by PHP applications - not suitable for multi-language architectures.
+
+**Built-in JSON Limitations**: While Symfony supports JSON serialization, it ties message types to PHP namespaces in headers. This creates issues when:
+- Two Symfony applications need to communicate (namespace conflicts)
+- Non-PHP services need to consume messages (PHP-specific headers)
+- You want business-friendly message identifiers
+
+**Custom Serializer Complexity**: Symfony allows custom serializers per transport, but the configuration is cumbersome and requires extensive setup for each transport.
+
+**This transport solves these issues automatically** by:
+- Producing clean JSON with business identifiers you define
+- Adding a simple header with your custom identifier (not PHP namespace)
+- Enabling seamless interoperability with other languages
+- Requiring minimal configuration
+
+This transport is designed for:
 
 - **Event Streaming**: Optimized for real-time event flows
 - **Flexibility**: Granular configuration for producers and consumers
@@ -101,7 +118,7 @@ framework:
 
 *When producing, messages are automatically serialized to JSON and sent to Kafka with the message body as JSON and Messenger metadata stored in Kafka headers. When consuming, the transport examines the message type and deserializes it to the corresponding PHP class based on the routing configuration.*
 
-**⚠️ Important**: To use advanced mode, you **must implement the Hook interface** and define `KafkaIdentifierStamp` for each message type. This identifier is used as the JSON key for message type mapping during consumption. See the [Stamp System](https://github.com/AlvaroRosado/event-driven-kafka-messenger-transport/blob/main/README.md#%EF%B8%8F-stamp-system) section below for complete implementation details.
+**⚠️ Important**: To use advanced mode, you **must implement the Hook interface** and define `KafkaIdentifierStamp` for each message type. This identifier is used as the JSON key for message type mapping during consumption. See the [Stamp System](#%EF%B8%8F-stamp-system) section below for complete implementation details.
 
 ## Key Features
 
@@ -131,7 +148,7 @@ consumer:
     # Only process registrations and updates
     - name: 'user_registered'
       class: 'App\Message\UserRegistered'
-    - name: 'user_updated'  
+    - name: 'user_updated'
       class: 'App\Message\UserUpdated'
     # user_deleted is automatically ignored
 ```
@@ -252,7 +269,7 @@ framework:
       # Existing Kafka transport
       legacy_kafka:
         dsn: 'kafka://localhost:9092'
-        
+
       # This event-driven transport
       event_stream:
         dsn: 'ed+kafka://localhost:9092'  # Same broker, different transport
@@ -260,7 +277,7 @@ framework:
           topics: ['user_events']
           json_serialization:
             enabled: true
-    
+
     routing:
       'App\Legacy\OrderCreated': legacy_kafka
       'App\Event\UserRegistered': event_stream
