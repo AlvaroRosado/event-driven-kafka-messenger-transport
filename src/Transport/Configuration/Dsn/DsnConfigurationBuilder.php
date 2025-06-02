@@ -12,8 +12,8 @@ final class DsnConfigurationBuilder
             throw new \InvalidArgumentException(sprintf('Invalid Kafka DSN: "%s"', $dsn));
         }
 
-        if ('kafka' !== $parsedUrl['scheme']) {
-            throw new \InvalidArgumentException(sprintf('Kafka DSN must start with "kafka://": "%s"', $dsn));
+        if ('ed+kafka' !== $parsedUrl['scheme']) {
+            throw new \InvalidArgumentException(sprintf('Kafka DSN must start with "ed+kafka://": "%s"', $dsn));
         }
 
         return new DsnConfiguration(

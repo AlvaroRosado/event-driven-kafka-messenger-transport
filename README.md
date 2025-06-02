@@ -22,12 +22,16 @@ composer require alvarorosado/event-driven-kafka-messenger-transport
 
 ```bash
 # .env
-KAFKA_DSN=kafka://localhost:9092
+KAFKA_DSN=ed+kafka://localhost:9092
 KAFKA_SECURITY_PROTOCOL=PLAINTEXT
 KAFKA_USERNAME=your_username
 KAFKA_PASSWORD=your_password
 APP_ENV=dev
 ```
+
+**Why `ed+kafka://` instead of `kafka://`?**
+
+The `ed+kafka://` DSN prefix allows this transport to coexist with other Kafka packages in the same project. This enables gradual migration and safe testing without conflicts - you can keep your existing Kafka transport while evaluating this one.
 
 ## Required Configuration File
 
@@ -237,6 +241,31 @@ framework:
               auto.offset.reset: 'latest'             # Only new messages
 ```
 
+## Coexistence with Other Kafka Transports
+
+The `ed+kafka://` DSN allows you to use this transport alongside existing Kafka packages:
+
+```yaml
+framework:
+  messenger:
+    transports:
+      # Existing Kafka transport
+      legacy_kafka:
+        dsn: 'kafka://localhost:9092'
+        
+      # This event-driven transport
+      event_stream:
+        dsn: 'ed+kafka://localhost:9092'  # Same broker, different transport
+        options:
+          topics: ['user_events']
+          json_serialization:
+            enabled: true
+    
+    routing:
+      'App\Legacy\OrderCreated': legacy_kafka
+      'App\Event\UserRegistered': event_stream
+```
+
 ## Common Use Cases
 
 ### 1. Event Sourcing
@@ -315,23 +344,3 @@ group.id: '%env(APP_ENV)%-user-service-events'
 
 ### Group ID Strategy
 In Kafka, `group.id` determines which consumers belong to the same group. Consumers in the same group share topic partitions, but each message is only processed by one consumer in the group. Use specific `group.id` for each use case to prevent different services from interfering with each other.
-
-
-### Inspiration and References
-
-This project has been inspired by and builds upon ideas from several excellent packages in the PHP/Symfony ecosystem:
-
-- **[koco/messenger-kafka](https://github.com/KonstantinCodes/messenger-kafka)** - Early Kafka transport implementation that demonstrated basic integration patterns
-- **[symfony/amazon-sqs-messenger](https://github.com/symfony/amazon-sqs-messenger)** - Excellent reference for implementing custom Symfony Messenger transports
-
-Special thanks to the Symfony Messenger team for creating such an extensible and well-designed messaging framework that makes custom transports like this possible.
-
-### Differences from Existing Solutions
-
-While inspired by existing packages, this transport introduces several unique features:
-
-- **True event streaming support** with selective message filtering
-- **Automatic JSON serialization** without complex configuration
-- **Multi-topic production** from single transport configuration
-- **Advanced stamp system** for granular Kafka control
-- **Hook-based extensibility** for custom business logic integration

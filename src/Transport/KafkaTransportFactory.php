@@ -62,6 +62,6 @@ final class KafkaTransportFactory implements TransportFactoryInterface
 
     public function supports(string $dsn, array $options): bool
     {
-        return str_starts_with($dsn, 'kafka://');
+        return str_starts_with($dsn, 'ed+kafka://');
     }
 }
