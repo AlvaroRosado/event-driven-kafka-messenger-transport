@@ -38,8 +38,8 @@ The `ed+kafka://` DSN prefix allows this transport to coexist with other Kafka p
 Create the global configuration file for Kafka settings:
 
 ```yaml
-# config/packages/kafka_messenger.yaml
-kafka_messenger:
+# config/packages/event_drive_kafka_transport.yaml
+event_driven_kafka_transport:
   consumer:
     commit_async: true
     consume_timeout_ms: 500
