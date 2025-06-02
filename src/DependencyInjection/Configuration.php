@@ -11,7 +11,7 @@ class Configuration implements ConfigurationInterface
 {
     public function getConfigTreeBuilder(): TreeBuilder
     {
-        $treeBuilder = new TreeBuilder('kafka_messenger');
+        $treeBuilder = new TreeBuilder('event_driven_kafka_transport');
         $rootNode = $treeBuilder->getRootNode();
 
         $rootNode
