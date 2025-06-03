@@ -46,8 +46,6 @@ final class DsnConfigurationBuilder
         $config = [
             'security.protocol' => 'SASL_PLAINTEXT',
             'sasl.mechanisms' => 'PLAIN',
-            'sasl.username' => '',
-            'sasl.password' => ''
         ];
 
         foreach ($parameterMap as $configKey => $possibleKeys) {
