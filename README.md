@@ -86,10 +86,6 @@ event_driven_kafka_transport:
       enable.idempotence: 'false'
 ```
 
-**Why `ed+kafka://` instead of `kafka://`?**
-
-The `ed+kafka://` DSN prefix allows this transport to coexist with other Kafka packages in the same project. This enables gradual migration and safe testing without conflicts - you can keep your existing Kafka transport while evaluating this one.
-
 ## Quick Start
 
 ### Basic Configuration
@@ -142,7 +138,7 @@ framework:
 
 | Feature | Basic Mode | Advanced Mode |
 |---|---|---|
-| Serialization | Native PHP | Automatic JSON |
+| Serialization | Native PHP | Automatic JSON (Symfony Serializer) |
 | Types per topic | Single | Multiple |
 | Selective filtering | No | Yes |
 | Interoperability | PHP only | Multi-language |
@@ -247,6 +243,60 @@ class EventStreamingHook implements KafkaTransportHookInterface
     }
 }
 ```
+
+## JSON Serialization Details
+
+### Advanced Mode Serialization
+
+When `json_serialization.enabled` is set to `true`, the transport uses **Symfony Serializer** internally to handle JSON conversion. This provides:
+
+- **Automatic normalization** of your message objects to JSON
+- **Type-safe deserialization** back to PHP objects
+- **Consistent format** across all messages
+- **Symfony ecosystem integration** with existing normalizers and context
+
+### Serializer Limitations
+
+**⚠️ Current Limitations:**
+
+1. **Fixed Serializer**: The transport currently uses Symfony Serializer exclusively for JSON mode. Custom serializers are not supported yet.
+
+2. **Transport-level Serializer Conflicts**: If you configure a custom `serializer` option at the transport level in Messenger configuration, this will conflict with the advanced mode:
+
+```yaml
+# ❌ This will cause issues with advanced mode
+framework:
+  messenger:
+    transports:
+      kafka_events:
+        dsn: '%env(KAFKA_DSN)%'
+        serializer: 'my_custom_serializer'  # Conflicts with json_serialization
+        options:
+          json_serialization:
+            enabled: true  # Will not work as expected
+```
+
+**Why this happens:**
+- Symfony's `SerializerInterface` requires manual stamp management
+- The transport's automatic stamp handling conflicts with custom serializers
+- Message metadata and routing information gets lost in the serialization process
+
+**Recommended approach:**
+```yaml
+# ✅ Use the transport's built-in JSON serialization
+framework:
+  messenger:
+    transports:
+      kafka_events:
+        dsn: '%env(KAFKA_DSN)%'
+        # No custom serializer - let the transport handle it
+        options:
+          json_serialization:
+            enabled: true
+```
+
+**Future Enhancement:**
+Support for custom serializers in advanced mode is planned for future versions. If you need custom serialization logic, consider:
 
 ## Configuration
 
@@ -378,6 +428,10 @@ group.id: '%env(APP_ENV)%-user-service-events'
 ### Group ID Strategy
 In Kafka, `group.id` determines which consumers belong to the same group. Consumers in the same group share topic partitions, but each message is only processed by one consumer in the group. Use specific `group.id` for each use case to prevent different services from interfering with each other.
 
+### Serialization Strategy
+- **Basic mode**: Uses PHP native serialization for maximum Symfony compatibility
+- **Advanced mode**: Uses Symfony Serializer for JSON output and interoperability
+- **Avoid mixing**: Don't use transport-level `serializer` option with `json_serialization.enabled: true`
 
 ## Acknowledgments
 
@@ -388,4 +442,4 @@ This transport builds upon the excellent work and ideas from the Kafka community
 - **[php-enqueue/rdkafka](https://github.com/php-enqueue/rdkafka)** - Solid foundation for PHP-Kafka integration
 - **[exoticca/kafka-transport](https://packagist.org/packages/exoticca/kafka-transport)** - A transport I developed with colleagues during my time at Exoticca, which became the foundation and inspiration for this project, incorporating lessons learned from production use
 
-Each of these projects contributed valuable insights that helped shape the design and implementation of this transport. 
+Each of these projects contributed valuable insights that helped shape the design and implementation of this transport.
