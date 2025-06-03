@@ -40,17 +40,36 @@ composer require alvarorosado/event-driven-kafka-messenger-transport
 ```bash
 # .env
 KAFKA_DSN=ed+kafka://localhost:9092
-KAFKA_SECURITY_PROTOCOL=PLAINTEXT
-KAFKA_USERNAME=your_username
-KAFKA_PASSWORD=your_password
 APP_ENV=dev
 ```
 
-**Why `ed+kafka://` instead of `kafka://`?**
+## Optional Security Parameters in DSN
+
+```bash
+# With SASL authentication
+KAFKA_EVENTS_MESSENGER_TRANSPORT_DSN=ed+kafka://localhost:9092?security_protocol=SASL_PLAINTEXT&username=myuser&password=mypass&sasl_mechanisms=PLAIN
+
+# With SSL/TLS
+KAFKA_EVENTS_MESSENGER_TRANSPORT_DSN=ed+kafka://localhost:9092?security_protocol=SSL
+
+# Without authentication (default)
+KAFKA_EVENTS_MESSENGER_TRANSPORT_DSN=ed+kafka://localhost:9092
+```
+
+## Supported DSN Parameters
+
+| Parameter | Alternative Names | Description | Default | Example Values |
+|---|---|---|---|---|
+| `security_protocol` | `protocol`, `sec_protocol` | Kafka security protocol | `PLAINTEXT` | `PLAINTEXT`, `SASL_PLAINTEXT`, `SASL_SSL`, `SSL` |
+| `sasl_mechanisms` | `mechanisms` | SASL authentication mechanism | `PLAIN` | `PLAIN`, `SCRAM-SHA-256`, `SCRAM-SHA-512` |
+| `username` | `user`, `sasl_username` | SASL username | *(empty)* | `myuser` |
+| `password` | `pass`, `sasl_password` | SASL password | *(empty)* | `mypass` |
+
+## Why `ed+kafka://` instead of `kafka://`?
 
 The `ed+kafka://` DSN prefix allows this transport to coexist with other Kafka packages in the same project. This enables gradual migration and safe testing without conflicts - you can keep your existing Kafka transport while evaluating this one.
 
-## Required Configuration File
+## Configuration File
 
 Create the global configuration file for Kafka settings:
 
@@ -62,17 +81,15 @@ event_driven_kafka_transport:
     consume_timeout_ms: 500
     config:
       group.id: 'default-group'
-      security.protocol: "%env(KAFKA_SECURITY_PROTOCOL)%"
-      sasl.username: "%env(KAFKA_USERNAME)%"
-      sasl.password: "%env(KAFKA_PASSWORD)%"
       auto.offset.reset: 'earliest'
   producer:
     config:
-      security.protocol: "%env(KAFKA_SECURITY_PROTOCOL)%"
-      sasl.username: "%env(KAFKA_USERNAME)%"
-      sasl.password: "%env(KAFKA_PASSWORD)%"
       enable.idempotence: 'false'
 ```
+
+**Why `ed+kafka://` instead of `kafka://`?**
+
+The `ed+kafka://` DSN prefix allows this transport to coexist with other Kafka packages in the same project. This enables gradual migration and safe testing without conflicts - you can keep your existing Kafka transport while evaluating this one.
 
 ## Quick Start
 

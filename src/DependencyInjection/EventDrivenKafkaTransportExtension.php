@@ -20,7 +20,6 @@ class EventDrivenKafkaTransportExtension extends Extension
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
 
-
         $container->setParameter('event_driven_transport.consumer.sasl.username',$config['consumer']['config']['sasl.username']);
         $container->setParameter('event_driven_transport.consumer.sasl.password',$config['consumer']['config']['sasl.password']);
         $container->setParameter('event_driven_transport.consumer.security.protocol',$config['consumer']['config']['security.protocol']);

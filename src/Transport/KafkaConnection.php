@@ -206,6 +206,9 @@ class KafkaConnection
     {
         $conf = new Conf();
         $conf->set('metadata.broker.list', $this->configuration->getHost());
+        foreach ($this->configuration->getSecurityConfig() as $key => $value) {
+            $conf->set($key, $value);
+        }
         return $conf;
     }
 

@@ -32,10 +32,8 @@ final class ConfigurationBuilder
 
     public function build(string $dsn, array $globalOptions, array $transportOptions): Configuration
     {
-        // Parse DSN
         $parsedDsn = $this->dsn->build($dsn);
 
-        // Merge and validate options
         $mergedOptions = array_replace_recursive($globalOptions, $transportOptions);
 
         $invalidOptions = array_diff(
@@ -54,22 +52,17 @@ final class ConfigurationBuilder
             );
         }
 
-        // Resolve global topics
         $globalTopics = $mergedOptions['topics'] ?? [];
 
-        // Build JSON serialization configuration
         $jsonConfig = $this->buildJsonSerializationConfig($mergedOptions);
 
-        // Build specific configurations
         $consumerConfig = $this->consumerBuilder->build($mergedOptions, $globalTopics);
         $producerConfig = $this->producerBuilder->build($mergedOptions, $globalTopics);
 
-        // Validate that at least one topic is configured
         $this->validateTopicsConfiguration($consumerConfig, $producerConfig, $parsedDsn->transportName);
 
         return new Configuration(
-            host: $parsedDsn->host,
-            transportName: $parsedDsn->transportName,
+            dsn: $parsedDsn,
             producer: $producerConfig,
             consumer: $consumerConfig,
             jsonSerialization: $jsonConfig,

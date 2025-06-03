@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace ARO\KafkaMessenger\Transport\Configuration;
 
 use ARO\KafkaMessenger\Transport\Configuration\Consumer\ConsumerConfiguration;
+use ARO\KafkaMessenger\Transport\Configuration\Dsn\DsnConfiguration;
 use ARO\KafkaMessenger\Transport\Configuration\JsonSerialization\JsonSerializationConfiguration;
 use ARO\KafkaMessenger\Transport\Configuration\Producer\ProducerConfiguration;
 
 final class Configuration
 {
     public function __construct(
-        private string                $host,
-        private string                $transportName,
+        private DsnConfiguration $dsn,
         private ProducerConfiguration $producer,
         private ConsumerConfiguration $consumer,
         private JsonSerializationConfiguration $jsonSerialization,
@@ -21,12 +21,17 @@ final class Configuration
     
     public function getHost(): string
     {
-        return $this->host;
+        return $this->dsn->host;
+    }
+
+    public function getSecurityConfig(): array
+    {
+        return $this->dsn->securityConfig;
     }
     
     public function getTransportName(): string
     {
-        return $this->transportName;
+        return $this->dsn->transportName;
     }
     
     public function isJsonSerializationEnabled(): bool
