@@ -126,7 +126,7 @@ consumer:
 
 **Advantages:**
 - Unconfigured messages are automatically committed
-- They don't accumulate in the queue
+- They don't accumulate as lag
 - Multiple services can process different subsets of the same topic
 
 ### 🏷️ Stamp System
