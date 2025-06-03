@@ -40,15 +40,6 @@ KAFKA_EVENTS_MESSENGER_TRANSPORT_DSN=ed+kafka://localhost:9092?security_protocol
 KAFKA_EVENTS_MESSENGER_TRANSPORT_DSN=ed+kafka://localhost:9092
 ```
 
-## Supported DSN Parameters
-
-| Parameter | Alternative Names | Description | Default | Example Values |
-|---|---|---|---|---|
-| `security_protocol` | `protocol`, `sec_protocol` | Kafka security protocol | `PLAINTEXT` | `PLAINTEXT`, `SASL_PLAINTEXT`, `SASL_SSL`, `SSL` |
-| `sasl_mechanisms` | `mechanisms` | SASL authentication mechanism | `PLAIN` | `PLAIN`, `SCRAM-SHA-256`, `SCRAM-SHA-512` |
-| `username` | `user`, `sasl_username` | SASL username | *(empty)* | `myuser` |
-| `password` | `pass`, `sasl_password` | SASL password | *(empty)* | `mypass` |
-
 ## Why `ed+kafka://` instead of `kafka://`?
 
 The `ed+kafka://` DSN prefix allows this transport to coexist with other Kafka packages in the same project. This enables gradual migration and safe testing without conflicts - you can keep your existing Kafka transport while evaluating this one.
