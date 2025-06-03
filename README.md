@@ -108,23 +108,6 @@ framework:
 
 **⚠️ Important**: To use advanced mode, you **must implement the Hook interface** and define `KafkaIdentifierStamp` for each message type. This identifier is used as the JSON key for message type mapping during consumption. See the [Stamp System](#%EF%B8%8F-stamp-system) section below for complete implementation details.
 
-## Key Features
-
-### 🔄 Two Operation Modes
-
-| Feature | Basic Mode | Advanced Mode |
-|---|---|---|
-| Serialization | Native PHP | Automatic JSON (Symfony Serializer) |
-| Types per topic | Single | Multiple |
-| Selective filtering | No | Yes |
-| Interoperability | PHP only | Multi-language |
-| Routing | Symfony standard | Custom |
-
-**When to use each mode?**
-
-- **Basic Mode**: Simple message queues, PHP only, maximum compatibility
-- **Advanced Mode**: Event streaming, microservices, interoperability, selective filtering
-
 ### 🎯 Selective Event Streaming
 
 Process only the events you need from a topic with multiple types:
