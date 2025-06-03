@@ -12,7 +12,7 @@ This transport is designed for:
 - **Flexibility**: Granular configuration for producers and consumers
 - **Simplicity**: Automatic JSON serialization without additional configuration
 - **Multi-topic**: Produce to multiple topics with a single configuration
-- **Selective Consumption**: Consume specific event types from topics containing multiple event types (Design your topics by event streams is now possible ;))
+- **Selective Consumption**: Consume specific event types from topics containing multiple event types (Design your topics by event streams is now possible!)
 
 ## Installation
 
