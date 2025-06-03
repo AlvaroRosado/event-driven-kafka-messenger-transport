@@ -13,8 +13,6 @@ Existing packages for Kafka + Symfony Messenger are outdated or don't cover adva
 - Non-PHP services need to consume messages (PHP-specific headers)
 - You want business-friendly message identifiers
 
-**Custom Serializer Complexity**: Symfony allows custom serializers per transport, but the configuration is cumbersome and requires extensive setup for each transport.
-
 **This transport solves these issues automatically** by:
 - Producing clean JSON with business identifiers you define
 - Adding a simple header with your custom identifier (not PHP namespace)
