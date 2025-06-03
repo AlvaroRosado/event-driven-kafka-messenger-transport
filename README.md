@@ -205,56 +205,105 @@ class EventStreamingHook implements KafkaTransportHookInterface
 
 ## JSON Serialization Details
 
-### Advanced Mode Serialization
+### Custom Symfony Serializer Support (Optional)
 
-When `json_serialization.enabled` is set to `true`, the transport uses **Symfony Serializer** internally to handle JSON conversion. This provides:
+The transport includes **automatic JSON serialization** that works out of the box without any additional configuration. However, if you need special serialization behavior (custom date formats, field transformations, etc.), you can optionally use a custom Symfony Serializer:
 
-- **Automatic normalization** of your message objects to JSON
-- **Type-safe deserialization** back to PHP objects
-- **Consistent format** across all messages
-- **Symfony ecosystem integration** with existing normalizers and context
+```yaml
+# config/packages/messenger.yaml
+framework:
+  messenger:
+    transports:
+      kafka_events:
+        dsn: '%env(KAFKA_DSN)%'
+        options:
+          topics: ['user_events']
+          json_serialization:
+            enabled: true  # This is all you need for most cases
+            # custom_serializer: 'App\Serializer\CustomMessageSerializer'  # Optional
+          consumer:
+            routing:
+              - name: 'user_registered'
+                class: 'App\Message\UserRegistered'
+```
+
+**Requirements for Custom Serializer (when needed):**
+
+1. **Must extend Symfony Serializer**: Your custom serializer class must be a subclass of `Symfony\Component\Serializer\Serializer`
+
+2. **Must be instantiable**: The transport will instantiate your serializer class automatically, so it must have a constructor that can be called without parameters or with default parameters
+
+3. **Example Implementation 
+```php
+<?php
+namespace App\Serializer;
+
+use Symfony\Component\Serializer\Serializer;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
+use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
+use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
+
+class CustomMessageSerializer extends Serializer
+{
+    public function __construct()
+    {
+        $normalizers = [
+            new DateTimeNormalizer(), // Handle DateTime objects
+            new ObjectNormalizer(),   // Handle general objects
+        ];
+        
+        $encoders = [
+            new JsonEncoder()
+        ];
+        
+        parent::__construct($normalizers, $encoders);
+    }
+}
+```
 
 ### Serializer Limitations
 
-**⚠️ Current Limitations:**
-
-1. **Fixed Serializer**: The transport currently uses Symfony Serializer exclusively for JSON mode. Custom serializers are not supported yet.
-
-2. **Transport-level Serializer Conflicts**: If you configure a custom `serializer` option at the transport level in Messenger configuration, this will conflict with the advanced mode:
+**✅ Recommended Configuration (works automatically):**
 
 ```yaml
-# ❌ This will cause issues with advanced mode
+# ✅ Default automatic serialization (recommended for most use cases)
 framework:
   messenger:
     transports:
       kafka_events:
         dsn: '%env(KAFKA_DSN)%'
-        serializer: 'my_custom_serializer'  # Conflicts with json_serialization
         options:
           json_serialization:
-            enabled: true  # Will not work as expected
-```
+            enabled: true  # Automatic JSON serialization - no custom serializer needed
 
-**Why this happens:**
-- Symfony's `SerializerInterface` requires manual stamp management
-- The transport's automatic stamp handling conflicts with custom serializers
-- Message metadata and routing information gets lost in the serialization process
-
-**Recommended approach:**
-```yaml
-# ✅ Use the transport's built-in JSON serialization
+# ✅ Custom Symfony Serializer (only when you need special serialization logic)
 framework:
   messenger:
     transports:
       kafka_events:
         dsn: '%env(KAFKA_DSN)%'
-        # No custom serializer - let the transport handle it
+        options:
+          json_serialization:
+            enabled: true
+            custom_serializer: 'App\Serializer\CustomMessageSerializer'  # Optional
+```
+
+**❌ Unsupported Configurations:**
+
+```yaml
+# ❌ This will still cause conflicts
+framework:
+  messenger:
+    transports:
+      kafka_events:
+        dsn: '%env(KAFKA_DSN)%'
+        serializer: 'my_custom_serializer'  # Transport-level serializer conflicts
         options:
           json_serialization:
             enabled: true
 ```
 
-Support for custom serializers in advanced mode is planned for future versions.
+The transport's automatic JSON serialization works great for most use cases. Only use `custom_serializer` when you have specific serialization requirements that the default behavior doesn't cover. Avoid the transport-level `serializer` option when using advanced mode.
 
 ## Configuration
 
@@ -272,7 +321,8 @@ framework:
         options:
           topics: ['user_events', 'audit_events']  # Multi-topic
           json_serialization:
-            enabled: true
+            enabled: true 
+            # custom_serializer: 'App\Serializer\EventSerializer'  # Only if needed
           consumer:
             routing:
               - name: 'user_registered'
@@ -385,11 +435,6 @@ group.id: '%env(APP_ENV)%-user-service-events'
 
 ### Group ID Strategy
 In Kafka, `group.id` determines which consumers belong to the same group. Consumers in the same group share topic partitions, but each message is only processed by one consumer in the group. Use specific `group.id` for each use case to prevent different services from interfering with each other.
-
-### Serialization Strategy
-- **Basic mode**: Uses PHP native serialization for maximum Symfony compatibility
-- **Advanced mode**: Uses Symfony Serializer for JSON output and interoperability
-- **Avoid mixing**: Don't use transport-level `serializer` option with `json_serialization.enabled: true`
 
 ## Acknowledgments
 
