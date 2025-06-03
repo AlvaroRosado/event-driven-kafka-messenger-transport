@@ -378,3 +378,15 @@ group.id: '%env(APP_ENV)%-user-service-events'
 
 ### Group ID Strategy
 In Kafka, `group.id` determines which consumers belong to the same group. Consumers in the same group share topic partitions, but each message is only processed by one consumer in the group. Use specific `group.id` for each use case to prevent different services from interfering with each other.
+
+
+## Acknowledgments
+
+This transport builds upon the excellent work and ideas from the Kafka community and previous implementations:
+
+- **[Symfony Kafka Transport PR](https://github.com/symfony/symfony/pull/51070)** - Early exploration of native Kafka support in Symfony Messenger
+- **[messenger-kafka](https://github.com/KonstantinCodes/messenger-kafka)** - Clean implementation patterns and configuration approaches
+- **[php-enqueue/rdkafka](https://github.com/php-enqueue/rdkafka)** - Solid foundation for PHP-Kafka integration
+- **[exoticca/kafka-transport](https://packagist.org/packages/exoticca/kafka-transport)** - A transport I developed with colleagues during my time at Exoticca, which became the foundation and inspiration for this project, incorporating lessons learned from production use
+
+Each of these projects contributed valuable insights that helped shape the design and implementation of this transport. 
