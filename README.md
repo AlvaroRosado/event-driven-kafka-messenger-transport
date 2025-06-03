@@ -6,25 +6,13 @@ A custom transport for Symfony Messenger specifically designed to work with Apac
 
 Existing packages for Kafka + Symfony Messenger are outdated or don't cover advanced event streaming use cases.
 
-**Default PHP Serialization**: Messenger uses PHP's native serializer by default, which produces binary data that's only readable by PHP applications - not suitable for multi-language architectures.
-
-**Built-in JSON Limitations**: While Symfony supports JSON serialization, it ties message types to PHP namespaces in headers. This creates issues when:
-- Two Symfony applications need to communicate (namespace conflicts)
-- Non-PHP services need to consume messages (PHP-specific headers)
-- You want business-friendly message identifiers
-
-**This transport solves these issues automatically** by:
-- Adding a simple header with your custom identifier (not PHP namespace)
-- Enabling seamless interoperability with other languages
-- Requiring minimal configuration
-
 This transport is designed for:
 
 - **Event Streaming**: Optimized for real-time event flows
 - **Flexibility**: Granular configuration for producers and consumers
 - **Simplicity**: Automatic JSON serialization without additional configuration
 - **Multi-topic**: Produce to multiple topics with a single configuration
-- **Selective Consumption**: Consume specific event types from topics containing multiple event types
+- **Selective Consumption**: Consume specific event types from topics containing multiple event types (Design your topics by event streams is now possible ;))
 
 ## Installation
 
