@@ -43,20 +43,17 @@ final class DsnConfigurationBuilder
             'sasl.password' => ['password', 'pass', 'sasl_password']
         ];
 
-        $config = [
-            'security.protocol' => 'SASL_PLAINTEXT',
-            'sasl.mechanisms' => 'PLAIN',
-        ];
+        $defaultConfig = [];
 
         foreach ($parameterMap as $configKey => $possibleKeys) {
             foreach ($possibleKeys as $key) {
                 if (isset($queryParams[$key])) {
-                    $config[$configKey] = $queryParams[$key];
+                    $defaultConfig[$configKey] = $queryParams[$key];
                     break;
                 }
             }
         }
 
-        return $config;
+        return $defaultConfig;
     }
 }
