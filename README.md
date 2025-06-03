@@ -40,7 +40,6 @@ composer require alvarorosado/event-driven-kafka-messenger-transport
 ```bash
 # .env
 KAFKA_DSN=ed+kafka://localhost:9092
-APP_ENV=dev
 ```
 
 ## Optional Security Parameters in DSN
