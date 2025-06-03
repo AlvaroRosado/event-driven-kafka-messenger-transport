@@ -4,7 +4,7 @@ A custom transport for Symfony Messenger specifically designed to work with Apac
 
 ## Why another Kafka transport?
 
-Existing packages for Kafka + Symfony Messenger are outdated or don't cover advanced event streaming use cases. Additionally, Symfony Messenger's serialization has limitations for event streaming scenarios:
+Existing packages for Kafka + Symfony Messenger are outdated or don't cover advanced event streaming use cases.
 
 **Default PHP Serialization**: Messenger uses PHP's native serializer by default, which produces binary data that's only readable by PHP applications - not suitable for multi-language architectures.
 
