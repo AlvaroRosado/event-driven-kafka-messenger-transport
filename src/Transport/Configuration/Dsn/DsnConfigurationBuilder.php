@@ -44,7 +44,7 @@ final class DsnConfigurationBuilder
         ];
 
         $config = [
-            'security.protocol' => 'plaintext',
+            'security.protocol' => 'SASL_PLAINTEXT',
             'sasl.mechanisms' => 'PLAIN',
             'sasl.username' => '',
             'sasl.password' => ''
