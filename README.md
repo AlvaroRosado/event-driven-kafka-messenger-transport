@@ -14,7 +14,6 @@ Existing packages for Kafka + Symfony Messenger are outdated or don't cover adva
 - You want business-friendly message identifiers
 
 **This transport solves these issues automatically** by:
-- Producing clean JSON with business identifiers you define
 - Adding a simple header with your custom identifier (not PHP namespace)
 - Enabling seamless interoperability with other languages
 - Requiring minimal configuration
