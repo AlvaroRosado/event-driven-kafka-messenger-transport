@@ -254,8 +254,7 @@ framework:
             enabled: true
 ```
 
-**Future Enhancement:**
-Support for custom serializers in advanced mode is planned for future versions. If you need custom serialization logic, consider:
+Support for custom serializers in advanced mode is planned for future versions.
 
 ## Configuration
 
