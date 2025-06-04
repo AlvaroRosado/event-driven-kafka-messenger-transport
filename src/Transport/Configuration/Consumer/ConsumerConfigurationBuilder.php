@@ -2,7 +2,6 @@
 
 namespace ARO\KafkaMessenger\Transport\Configuration\Consumer;
 
-
 final class ConsumerConfigurationBuilder
 {
     public function build(array $options, ?array $globalTopics = []): ConsumerConfiguration

@@ -18,7 +18,7 @@ final class Configuration
         private JsonSerializationConfiguration $jsonSerialization,
     ) {
     }
-    
+
     public function getHost(): string
     {
         return $this->dsn->host;
@@ -28,12 +28,7 @@ final class Configuration
     {
         return $this->dsn->securityConfig;
     }
-    
-    public function getTransportName(): string
-    {
-        return $this->dsn->transportName;
-    }
-    
+
     public function isJsonSerializationEnabled(): bool
     {
         return $this->jsonSerialization->enabled;
@@ -43,15 +38,15 @@ final class Configuration
     {
         return $this->jsonSerialization->customSerializer;
     }
-    
+
     public function getConsumer(): ConsumerConfiguration
     {
         return $this->consumer;
     }
-    
+
     public function getProducer(): ProducerConfiguration
     {
         return $this->producer;
     }
-    
+
 }

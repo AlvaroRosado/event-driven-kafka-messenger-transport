@@ -108,11 +108,13 @@ class KafkaConnection
 
                     yield $kafkaMessage;
 
+                    // no break
                 case RD_KAFKA_RESP_ERR__TIMED_OUT:
                 case RD_KAFKA_RESP_ERR__TRANSPORT:
                 case RD_KAFKA_RESP_ERR_UNKNOWN_TOPIC_OR_PART:
                 case RD_KAFKA_RESP_ERR__PARTITION_EOF:
                     yield null;
+                    // no break
                 default:
                     throw new \LogicException($kafkaMessage->errstr(), $kafkaMessage->err);
             }

@@ -8,5 +8,6 @@ final class DsnConfiguration
         public string $host,
         public string $transportName,
         public array $securityConfig = [],
-    ) {}
+    ) {
+    }
 }
