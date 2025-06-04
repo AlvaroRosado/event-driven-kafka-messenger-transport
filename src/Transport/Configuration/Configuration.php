@@ -34,7 +34,7 @@ final class Configuration
         return $this->jsonSerialization->enabled;
     }
 
-    public function customSymfonySerializer(): string
+    public function customSymfonySerializer(): ?string
     {
         return $this->jsonSerialization->customSerializer;
     }
