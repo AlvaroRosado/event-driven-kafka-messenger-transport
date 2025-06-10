@@ -16,6 +16,7 @@ final class Configuration
         private ProducerConfiguration $producer,
         private ConsumerConfiguration $consumer,
         private JsonSerializationConfiguration $jsonSerialization,
+        private ?string $retryTopic = null,
     ) {
     }
 
@@ -27,6 +28,11 @@ final class Configuration
     public function getSecurityConfig(): array
     {
         return $this->dsn->securityConfig;
+    }
+
+    public function retryTopic(): ?string
+    {
+        return $this->retryTopic;
     }
 
     public function isJsonSerializationEnabled(): bool

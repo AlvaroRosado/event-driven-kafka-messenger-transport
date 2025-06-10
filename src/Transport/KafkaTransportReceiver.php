@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ARO\KafkaMessenger\Transport;
 
+use ARO\KafkaMessenger\Transport\Configuration\Configuration;
 use ARO\KafkaMessenger\Transport\Hook\KafkaTransportHookInterface;
 use ARO\KafkaMessenger\Transport\Stamp\KafkaMessageStamp;
 use RdKafka\Message;
@@ -15,12 +16,17 @@ use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 final class KafkaTransportReceiver implements ReceiverInterface
 {
     private ?SerializerInterface $serializer;
+    private Configuration $configuration;
+    private ?KafkaTransportHookInterface $hook;
 
     public function __construct(
         private KafkaConnection              $connection,
-        private ?KafkaTransportHookInterface $hook = null,
-        ?SerializerInterface                 $serializer,
+        Configuration                $configuration,
+        ?KafkaTransportHookInterface $hook = null,
+        ?SerializerInterface $serializer = null,
     ) {
+        $this->configuration = $configuration;
+        $this->hook = $hook;
         $this->serializer = $serializer ?? new PhpSerializer();
     }
 
@@ -42,7 +48,9 @@ final class KafkaTransportReceiver implements ReceiverInterface
 
     public function reject(Envelope $envelope): void
     {
-        $this->ack($envelope);
+        if ($this->configuration->retryTopic()) {
+            $this->ack($envelope);
+        }
     }
 
     private function getEnvelope(Message $message): iterable

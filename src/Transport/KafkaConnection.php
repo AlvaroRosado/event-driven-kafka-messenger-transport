@@ -7,13 +7,20 @@ namespace ARO\KafkaMessenger\Transport;
 use ARO\KafkaMessenger\Transport\Configuration\Configuration;
 use ARO\KafkaMessenger\Transport\JsonSerializer\HeaderSerializer;
 use ARO\KafkaMessenger\Transport\Hook\KafkaTransportHookInterface;
+use ARO\KafkaMessenger\Transport\Stamp\KafkaKeyStamp;
+use ARO\KafkaMessenger\Transport\Stamp\KafkaMessageStamp;
 use Exception;
 use RdKafka\Conf;
 use RdKafka\KafkaConsumer;
 use RdKafka\Message;
 use RdKafka\Producer;
 use Symfony\Component\Console\SignalRegistry\SignalRegistry;
+use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\TransportException;
+use Symfony\Component\Messenger\Stamp\NonSendableStampInterface;
+use Symfony\Component\Messenger\Stamp\RedeliveryStamp;
+use Symfony\Component\Messenger\Transport\Serialization\PhpSerializer;
+use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 
 class KafkaConnection
 {
@@ -25,14 +32,17 @@ class KafkaConnection
     private Configuration $configuration;
     private SignalRegistry $signalRegistry;
     private ?KafkaTransportHookInterface $hook;
+    private SerializerInterface $serializer;
 
     public function __construct(
         Configuration                $configuration,
+        ?SerializerInterface   $serializer,
         ?KafkaTransportHookInterface $hook = null,
     ) {
         $this->configuration = $configuration;
         $this->signalRegistry = new SignalRegistry();
         $this->hook = $hook;
+        $this->serializer = $serializer ?? new PhpSerializer();
     }
 
     public function get(
@@ -130,52 +140,6 @@ class KafkaConnection
         }
     }
 
-    /**
-     * @param array<string, string> $headers
-     * @throws \RdKafka\Exception
-     */
-    public function produce(
-        int      $partition,
-        int      $messageFlags,
-        string   $body,
-        ?string   $key = null,
-        array    $headers = [],
-        bool     $forceFlush = true,
-    ): void {
-
-        $topicFromRouting = null;
-        if ($this->configuration->isJsonSerializationEnabled()) {
-            if (!isset($headers[HeaderSerializer::identifierHeaderKey()])) {
-                throw new \RuntimeException('Identifier stamp has not been set. This is required for JSON serialization.');
-            }
-            $identifier = $headers[HeaderSerializer::identifierHeaderKey()];
-            $topicFromRouting = $this->configuration->getProducer()->routing[$identifier] ?? null;
-        }
-
-        $producer = $this->getProducer();
-
-        foreach ($this->configuration->getProducer()->topics as $topic) {
-            if ($topicFromRouting && $topic != $topicFromRouting) {
-                continue;
-            }
-
-            $topic = $producer->newTopic($topic);
-            $topic->producev(
-                $partition,
-                $messageFlags,
-                $body,
-                $key,
-                $headers,
-            );
-
-            $producer->poll($this->configuration->getProducer()->flushTimeoutMs);
-        }
-
-        if ($forceFlush) {
-            $this->flush();
-        }
-    }
-
     public function flush(): void
     {
         for ($flushRetries = 0; $flushRetries < 10; ++$flushRetries) {
@@ -189,6 +153,98 @@ class KafkaConnection
         if (RD_KAFKA_RESP_ERR_NO_ERROR !== $result) {
             throw new TransportException('Was unable to flush, messages might be lost!: '.$result, $result);
         }
+    }
+
+    public function produce(Envelope $envelope): void
+    {
+        $isRetry = $envelope->last(RedeliveryStamp::class);
+        $retryTopic = $this->configuration->retryTopic();
+
+        if ($this->hook) {
+            $envelope = $this->hook->beforeProduce($envelope);
+        }
+        $envelope = $envelope->withoutStampsOfType(NonSendableStampInterface::class);
+
+        $decodedEnvelope = $this->serializer->encode($envelope);
+
+        [$partition, $messageFlags, $key] = $this->extractMessageMetadata($envelope);
+        $headers = $decodedEnvelope['headers'] ?? [];
+        $body = $decodedEnvelope['body'];
+
+        $topicFromRouting = $this->resolveRoutingTopic($headers);
+
+        $producer = $this->getProducer();
+
+        try {
+            if ($isRetry && $retryTopic) {
+                $this->sendMessage($producer, $retryTopic, $partition, $messageFlags, $body, $key, $headers);
+            } else {
+                foreach ($this->configuration->getProducer()->topics as $topicName) {
+                    if ($topicFromRouting && $topicName !== $topicFromRouting) {
+                        continue;
+                    }
+
+                    $this->sendMessage($producer, $topicName, $partition, $messageFlags, $body, $key, $headers);
+                }
+            }
+
+            $this->flush();
+        } catch (Exception $e) {
+            throw new TransportException($e->getMessage(), 0, $e);
+        }
+
+        $this->hook?->afterProduce($envelope);
+    }
+
+    private function extractMessageMetadata(Envelope $envelope): array
+    {
+        $partition = \RD_KAFKA_PARTITION_UA;
+        $messageFlags = \RD_KAFKA_CONF_OK;
+        $key = null;
+
+        if ($messageStamp = $envelope->last(KafkaMessageStamp::class)) {
+            $partition = $messageStamp->partition ?? $partition;
+            $messageFlags = $messageStamp->messageFlags ?? $messageFlags;
+            $key = $messageStamp->key ?? null;
+        }
+
+        if ($keyStamp = $envelope->last(KafkaKeyStamp::class)) {
+            $key = $keyStamp->key;
+        }
+
+        return [$partition, $messageFlags, $key];
+    }
+
+    private function resolveRoutingTopic(array $headers): ?string
+    {
+        if (!$this->configuration->isJsonSerializationEnabled()) {
+            return null;
+        }
+
+        $identifierKey = HeaderSerializer::identifierHeaderKey();
+
+        if (!isset($headers[$identifierKey])) {
+            throw new \RuntimeException('Identifier stamp has not been set. This is required for JSON serialization.');
+        }
+
+        $identifier = $headers[$identifierKey];
+
+        return $this->configuration->getProducer()->routing[$identifier] ?? null;
+    }
+
+    private function sendMessage(
+        Producer $producer,
+        string $topicName,
+        int $partition,
+        int $messageFlags,
+        string $body,
+        ?string $key,
+        array $headers
+    ): void
+    {
+        $topic = $producer->newTopic($topicName);
+        $topic->producev($partition, $messageFlags, $body, $key, $headers);
+        $producer->poll($this->configuration->getProducer()->flushTimeoutMs);
     }
 
     private function getConsumer(): KafkaConsumer

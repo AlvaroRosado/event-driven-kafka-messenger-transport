@@ -61,17 +61,17 @@ final class KafkaTransportFactory implements TransportFactoryInterface
 
         $connection = new KafkaConnection(
             configuration: $options,
+            serializer: $customSerializer,
             hook: $this->hook,
         );
 
         return new KafkaTransport(
             sender: new KafkaTransportSender(
                 connection: $connection,
-                hook: $this->hook,
-                serializer: $customSerializer,
             ),
             receiver: new KafkaTransportReceiver(
                 connection: $connection,
+                configuration: $options,
                 hook: $this->hook,
                 serializer: $customSerializer,
             )
