@@ -114,14 +114,23 @@ Process only the events you need from a topic with multiple types:
 
 ```yaml
 # Topic: user_events (contains: user_registered, user_updated, user_deleted)
-consumer:
-  routing:
-    # Only process registrations and updates
-    - name: 'user_registered'
-      class: 'App\Message\UserRegistered'
-    - name: 'user_updated'
-      class: 'App\Message\UserUpdated'
-    # user_deleted is automatically ignored
+framework:
+  messenger:
+    transports:
+      kafka_events:
+        dsn: '%env(KAFKA_DSN)%'
+        options:
+          topics: ['user_events']
+          json_serialization:
+            enabled: true
+          consumer:
+            routing:
+              # Only process registrations and updates
+              - name: 'user_registered'
+                class: 'App\Message\UserRegistered'
+              - name: 'user_updated'
+                class: 'App\Message\UserUpdated'
+            # user_deleted is automatically ignored
 ```
 
 **Advantages:**
@@ -138,6 +147,11 @@ Control Kafka behavior through Stamps in a custom Hook. **This Hook implementati
 abstract class Message
 {
     abstract public function identifier(): string;
+    
+    public function key(): ?string 
+    {
+        return null; // Optional: Override to provide partition key
+    }
 }
 
 class UserRegistered extends BaseKafkaMessage
@@ -149,7 +163,7 @@ class UserRegistered extends BaseKafkaMessage
 }
 ```
 
-**Complete Hook Implementation:**
+**Example of Hook Implementation:**
 ```php
 <?php
 namespace App\Transport\Hook;
@@ -168,11 +182,11 @@ class EventStreamingHook implements KafkaTransportHookInterface
         // Required for advanced mode: Add identifier for all Kafka messages
         if ($message instanceof Message) {
             $stamps[] = new KafkaIdentifierStamp($message->identifier());
-        }
-        
-        // Optional: Add partition key for ordering
-        if ($message instanceof UserRegistered) {
-            $stamps[] = new KafkaKeyStamp($message->getUserId());
+               
+            // Optional: Add partition key if available
+            if ($message->key()) {
+                $stamps[] = new KafkaKeyStamp($message->key());
+            }
         }
         
         // Optional: Add custom headers
