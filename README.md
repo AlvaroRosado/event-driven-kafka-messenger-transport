@@ -393,7 +393,7 @@ event_driven_kafka_transport:
 
 ### Retry Strategy with Failure Transports
 
-**Important**: Native retries are not supported in Kafka transports. Instead, use Symfony Messenger's failure transport system for a more robust retry strategy:
+**Important**: Retries policies are not supported in Kafka. Instead, use Symfony Messenger's failure transport system for a robust retry strategy:
 
 ```yaml
 # config/packages/messenger.yaml
