@@ -11,7 +11,8 @@ final class KafkaTransportSender implements SenderInterface
 {
     public function __construct(
         private KafkaConnection              $connection,
-    ) {}
+    ) {
+    }
 
     public function send(Envelope $envelope): Envelope
     {
