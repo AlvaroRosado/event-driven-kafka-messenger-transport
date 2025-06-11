@@ -46,7 +46,7 @@ class GlobalOptionsObjectMother
     {
         return [
             'producer' => [
-                'poll_timeout_ms' => 'invalid_string', // Should be int
+                'poll_timeout_ms' => 'invalid_string',
                 'flush_timeout_ms' => 10000,
                 'routing' => [],
                 'topics' => [],
@@ -59,7 +59,7 @@ class GlobalOptionsObjectMother
     {
         return [
             'consumer' => [
-                'commit_async' => 'invalid_string', // Should be bool
+                'commit_async' => 'invalid_string',
                 'consume_timeout_ms' => 500,
                 'commit_on_error' => true,
                 'topics' => [],

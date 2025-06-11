@@ -133,7 +133,7 @@ class TransportOptionsObjectMother
                 'poll_timeout_ms' => 0,
                 'flush_timeout_ms' => 10000,
                 'routing' => [],
-                'topics' => 'invalid_string', // Should be array
+                'topics' => 'invalid_string',
                 'config' => [],
             ]
         ];
@@ -148,7 +148,7 @@ class TransportOptionsObjectMother
                 'flush_timeout_ms' => 10000,
                 'routing' => [
                     [
-                        'topic' => 'SomeValidClass', // Missing 'name' field
+                        'topic' => 'SomeValidClass',
                     ]
                 ],
                 'topics' => [],
@@ -181,7 +181,7 @@ class TransportOptionsObjectMother
         return [
             'topics' => ['test_topic'],
             'consumer' => [
-                'commit_async' => 'invalid_string', // Should be bool
+                'commit_async' => 'invalid_string',
                 'consume_timeout_ms' => 500,
                 'commit_on_error' => true,
                 'topics' => [],
@@ -197,7 +197,7 @@ class TransportOptionsObjectMother
             'topics' => ['test_topic'],
             'consumer' => [
                 'commit_async' => true,
-                'consume_timeout_ms' => 'invalid_string', // Should be int
+                'consume_timeout_ms' => 'invalid_string',
                 'commit_on_error' => true,
                 'topics' => [],
                 'routing' => [],
@@ -214,7 +214,7 @@ class TransportOptionsObjectMother
                 'commit_async' => true,
                 'consume_timeout_ms' => 500,
                 'commit_on_error' => true,
-                'topics' => 'invalid_string', // Should be array
+                'topics' => 'invalid_string',
                 'routing' => [],
                 'config' => ['group.id' => 'test_group'],
             ]
@@ -232,7 +232,7 @@ class TransportOptionsObjectMother
                 'topics' => [],
                 'routing' => [
                     [
-                        'class' => 'SomeValidClass', // Missing 'name' field
+                        'class' => 'SomeValidClass',
                     ]
                 ],
                 'config' => ['group.id' => 'test_group'],
@@ -270,7 +270,7 @@ class TransportOptionsObjectMother
                 'commit_on_error' => true,
                 'topics' => [],
                 'routing' => [],
-                'config' => [], // Missing required 'group.id'
+                'config' => [],
             ]
         ];
     }
