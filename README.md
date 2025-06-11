@@ -8,7 +8,6 @@ Existing packages for Kafka + Symfony Messenger are outdated or don't cover adva
 
 This transport is designed for:
 
-- **Event Streaming**: Optimized for real-time event flows
 - **Flexibility**: Granular configuration for producers and consumers
 - **Simplicity**: Automatic JSON serialization without additional configuration
 - **Multi-topic**: Produce to multiple topics with a single configuration
