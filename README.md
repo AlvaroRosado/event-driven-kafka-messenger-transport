@@ -2,6 +2,12 @@
 
 A custom transport for Symfony Messenger specifically designed to work with Apache Kafka as an event streaming platform.
 
+## Compatibility
+
+This transport is compatible with:
+- **Symfony 5.x || 6.*x || 7.*x
+- **PHP 8.0+**
+
 ## Why another Kafka transport?
 
 Existing packages for Kafka + Symfony Messenger are outdated or don't cover advanced event streaming use cases.
