@@ -261,49 +261,6 @@ class CustomMessageSerializer extends Serializer
 }
 ```
 
-### Serializer Limitations
-
-**✅ Recommended Configuration (works automatically):**
-
-```yaml
-# ✅ Default automatic serialization (recommended for most use cases)
-framework:
-  messenger:
-    transports:
-      kafka_events:
-        dsn: '%env(KAFKA_DSN)%'
-        options:
-          json_serialization:
-            enabled: true  # Automatic JSON serialization - no custom serializer needed
-
-# ✅ Custom Symfony Serializer (only when you need special serialization logic)
-framework:
-  messenger:
-    transports:
-      kafka_events:
-        dsn: '%env(KAFKA_DSN)%'
-        options:
-          json_serialization:
-            enabled: true
-            custom_serializer: 'App\Serializer\CustomMessageSerializer'  # Optional
-```
-
-**❌ Unsupported Configurations:**
-
-```yaml
-# ❌ This will still cause conflicts
-framework:
-  messenger:
-    transports:
-      kafka_events:
-        dsn: '%env(KAFKA_DSN)%'
-        serializer: 'my_custom_serializer'  # Transport-level serializer conflicts
-        options:
-          json_serialization:
-            enabled: true
-```
-
-The transport's automatic JSON serialization works great for most use cases. Only use `custom_serializer` when you have specific serialization requirements that the default behavior doesn't cover. Avoid the transport-level `serializer` option when using advanced mode.
 
 ## Configuration
 
@@ -332,30 +289,6 @@ framework:
               auto.offset.reset: 'latest'             # Only new messages
 ```
 
-## Coexistence with Other Kafka Transports
-
-The `ed+kafka://` DSN allows you to use this transport alongside existing Kafka packages:
-
-```yaml
-framework:
-  messenger:
-    transports:
-      # Existing Kafka transport
-      legacy_kafka:
-        dsn: 'kafka://localhost:9092'
-
-      # This event-driven transport
-      event_stream:
-        dsn: 'ed+kafka://localhost:9092'  # Same broker, different transport
-        options:
-          topics: ['user_events']
-          json_serialization:
-            enabled: true
-
-    routing:
-      'App\Legacy\OrderCreated': legacy_kafka
-      'App\Event\UserRegistered': event_stream
-```
 
 ## Common Use Cases
 
@@ -425,13 +358,81 @@ group.id: '%env(APP_ENV)%-user-service-events'
 | `KafkaKeyStamp` | Defines partition key | `new KafkaKeyStamp($userId)` |
 | `KafkaCustomHeadersStamp` | Adds custom headers | `new KafkaCustomHeadersStamp(['tenant_id' => $id])` |
 
+## Error Handling and Retry Strategy
+
+### Message Commit on Error
+
+By default, the transport commits the offset even when message processing fails. This prevents the same message from being reprocessed indefinitely:
+
+```yaml
+# config/packages/event_drive_kafka_transport.yaml
+event_driven_kafka_transport:
+  consumer:
+    commit_on_error: true  # Default behavior - always commit offset
+    # commit_on_error: false  # Uncomment to retry failed messages from Kafka
+```
+
+### Retry Strategy with Failure Transports
+
+**Important**: Native retries are not supported in Kafka transports. Instead, use Symfony Messenger's failure transport system for a more robust retry strategy:
+
+```yaml
+# config/packages/messenger.yaml
+framework:
+  messenger:
+    transports:
+      # Main Kafka transport - no retries
+      kafka_events:
+        dsn: '%env(KAFKA_DSN)%'
+        retry_strategy:
+          max_retries: 0  # No retries in Kafka transport
+        failure_transport: retry_transport
+        options:
+          topics: ['user_events']
+          json_serialization:
+            enabled: true
+
+      # Retry transport - use a transport that supports retries
+      retry_transport:
+        dsn: '%env(DATABASE_URL)%'  # Doctrine DBAL transport (recommended)
+        # dsn: 'redis://localhost:6379/messages'  # Alternative: Redis transport
+        retry_strategy:
+          max_retries: 3
+          delay: 5000       # 5 seconds
+          multiplier: 2     # Exponential backoff
+        failure_transport: dead_letter_transport
+
+      # Dead letter transport - final destination for failed messages  
+      dead_letter_transport:
+        dsn: '%env(DATABASE_URL)%'  # Store permanently failed messages in database
+        # dsn: '%env(KAFKA_DSN)%'    # Alternative: Kafka topic for dead letters
+        # options:
+        #   topics: ['user_events_dead_letter']
+
+    routing:
+      'App\Message\UserRegistered': kafka_events
+```
+
+**How it works:**
+
+1. **Main Transport**: Processes messages with `max_retries: 0` using Kafka
+2. **Failure**: Failed messages go to `retry_transport` (Doctrine DBAL recommended)
+3. **Retry Transport**: Database/Redis transport attempts message 3 times with exponential backoff
+4. **Final Failure**: Permanently failed messages go to `dead_letter_transport`
+
+**Why use Doctrine DBAL for retries?**
+- ✅ Native retry support with configurable strategies
+- ✅ Persistent storage ensures retries survive application restarts
+- ✅ Better performance for retry scenarios than Kafka
+- ✅ Transactional guarantees for retry logic
+- ✅ Easy to query and monitor failed messages in database
+
 ## Important Notes
 
 ### Hook System
 - **Automatic detection**: Just implement `KafkaTransportHookInterface` - no service configuration needed
 - **Application-specific**: Hook implementation depends on your message types and business logic
 - **Stamp timing**: Stamps must be added in `beforeProduce` method
-- **Error handling**: You can throw exceptions in any hook method to halt processing
 
 ### Group ID Strategy
 In Kafka, `group.id` determines which consumers belong to the same group. Consumers in the same group share topic partitions, but each message is only processed by one consumer in the group. Use specific `group.id` for each use case to prevent different services from interfering with each other.

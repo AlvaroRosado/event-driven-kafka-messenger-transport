@@ -48,7 +48,7 @@ final class KafkaTransportReceiver implements ReceiverInterface
 
     public function reject(Envelope $envelope): void
     {
-        if ($this->configuration->retryTopic()) {
+        if ($this->configuration->getConsumer()->commitOnError) {
             $this->ack($envelope);
         }
     }

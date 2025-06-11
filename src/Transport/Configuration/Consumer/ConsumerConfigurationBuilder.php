@@ -15,6 +15,7 @@ final class ConsumerConfigurationBuilder
             topics: empty($consumerOptions['topics']) ? $globalTopics : [],
             consumeTimeout: $consumerOptions['consume_timeout_ms'] ?? 1000,
             commitAsync: $consumerOptions['commit_async'] ?? true,
+            commitOnError: $consumerOptions['commit_on_error'] ?? true,
         );
     }
 

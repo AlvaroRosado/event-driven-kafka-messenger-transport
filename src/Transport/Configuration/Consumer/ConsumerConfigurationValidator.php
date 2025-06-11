@@ -11,6 +11,7 @@ class ConsumerConfigurationValidator
     private const DEFAULT_CONSUMER_OPTIONS = [
         'commit_async' => true,
         'consume_timeout_ms' => 500,
+        'commit_on_error' => true,
         'topics' => [],
         'routing' => [],
         'config' => [

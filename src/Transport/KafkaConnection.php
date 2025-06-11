@@ -157,9 +157,6 @@ class KafkaConnection
 
     public function produce(Envelope $envelope): void
     {
-        $isRetry = $envelope->last(RedeliveryStamp::class);
-        $retryTopic = $this->configuration->retryTopic();
-
         if ($this->hook) {
             $envelope = $this->hook->beforeProduce($envelope);
         }
@@ -176,16 +173,13 @@ class KafkaConnection
         $producer = $this->getProducer();
 
         try {
-            if ($isRetry && $retryTopic) {
-                $this->sendMessage($producer, $retryTopic, $partition, $messageFlags, $body, $key, $headers);
-            } else {
-                foreach ($this->configuration->getProducer()->topics as $topicName) {
-                    if ($topicFromRouting && $topicName !== $topicFromRouting) {
-                        continue;
-                    }
 
-                    $this->sendMessage($producer, $topicName, $partition, $messageFlags, $body, $key, $headers);
+            foreach ($this->configuration->getProducer()->topics as $topicName) {
+                if ($topicFromRouting && $topicName !== $topicFromRouting) {
+                    continue;
                 }
+
+                $this->sendMessage($producer, $topicName, $partition, $messageFlags, $body, $key, $headers);
             }
 
             $this->flush();

@@ -17,6 +17,7 @@ final class ConsumerConfiguration
         public array $topics = [],
         public int $consumeTimeout = 500,
         public bool $commitAsync = true,
+        public bool $commitOnError = true,
         public bool $validateSchema = false,
     ) {
     }

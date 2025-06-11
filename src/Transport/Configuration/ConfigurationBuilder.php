@@ -20,8 +20,6 @@ final class ConfigurationBuilder
         'consumer',
         'producer',
         'topics',
-        'transport_name',
-        'retry_topic',
     ];
 
     public function __construct()
@@ -67,7 +65,6 @@ final class ConfigurationBuilder
             producer: $producerConfig,
             consumer: $consumerConfig,
             jsonSerialization: $jsonConfig,
-            retryTopic: $mergedOptions['retry_topic'] ?? null
         );
     }
 
