@@ -16,6 +16,7 @@ final class ConfigurationBuilder
     private ProducerConfigurationBuilder $producerBuilder;
 
     private const AVAILABLE_OPTIONS = [
+        'transport_name',
         'json_serialization',
         'consumer',
         'producer',
